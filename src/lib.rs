@@ -1,12 +1,4 @@
 pub mod constants;
 pub mod decode;
+pub mod derive;
 pub mod snapshot;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}

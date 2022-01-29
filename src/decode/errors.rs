@@ -14,4 +14,7 @@ pub enum DecodeError {
 
     #[error("failed to decode metadata")]
     DecodeMetadataFailed(String),
+
+    #[error("Wrong type: must pass in a String or a Pubkey")]
+    WrongType,
 }
