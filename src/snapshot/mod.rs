@@ -48,23 +48,13 @@ pub fn get_metadata_accounts_by_update_authority(
 
 pub fn get_metadata_accounts_by_creator(
     client: &RpcClient,
-    candy_machine_id: &String,
+    creator_id: &String,
+    creator_position: usize,
 ) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
     let config = RpcProgramAccountsConfig {
         filters: Some(vec![RpcFilterType::Memcmp(Memcmp {
-            offset: 1 + // key
-            32 + // update auth
-            32 + // mint
-            4 + // name string length
-            MAX_NAME_LENGTH + // name
-            4 + // uri string length
-            MAX_URI_LENGTH + // uri*
-            4 + // symbol string length
-            MAX_SYMBOL_LENGTH + // symbol
-            2 + // seller fee basis points
-            1 + // whether or not there is a creators vec
-            4, // creators
-            bytes: MemcmpEncodedBytes::Base58(candy_machine_id.to_string()),
+            offset: OFFSET_TO_CREATORS + creator_position * PUBKEY_LENGTH,
+            bytes: MemcmpEncodedBytes::Base58(creator_id.to_string()),
             encoding: None,
         })]),
         account_config: RpcAccountInfoConfig {
