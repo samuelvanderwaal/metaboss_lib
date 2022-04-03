@@ -19,7 +19,7 @@ use errors::SnapshotError;
 
 pub fn get_metadata_accounts_by_update_authority(
     client: &RpcClient,
-    update_authority: &String,
+    update_authority: &str,
 ) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
     let config = RpcProgramAccountsConfig {
         filters: Some(vec![RpcFilterType::Memcmp(Memcmp {
@@ -48,7 +48,7 @@ pub fn get_metadata_accounts_by_update_authority(
 
 pub fn get_metadata_accounts_by_creator(
     client: &RpcClient,
-    creator_id: &String,
+    creator_id: &str,
     creator_position: usize,
 ) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
     let config = RpcProgramAccountsConfig {

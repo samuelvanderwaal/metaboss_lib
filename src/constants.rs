@@ -17,6 +17,6 @@ pub const MAX_CREATOR_LEN: usize = 32 + 1 + 1;
 // creators vec length: 4
 pub const OFFSET_TO_CREATORS: usize = 326;
 pub const PUBKEY_LENGTH: usize = 32;
-pub const TOKEN_PROGRAM_ID: &'static str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
-pub const METAPLEX_PROGRAM_ID: &'static str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
+pub const TOKEN_PROGRAM_ID: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+pub const METAPLEX_PROGRAM_ID: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 pub const MINT_LAYOUT_SIZE: u64 = 82;

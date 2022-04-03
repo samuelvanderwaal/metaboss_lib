@@ -10,11 +10,11 @@ use errors::DecodeError;
 
 pub fn decode_metadata_from_mint(
     client: &RpcClient,
-    mint_address: &String,
+    mint_address: &str,
 ) -> Result<Metadata, DecodeError> {
-    let pubkey = match Pubkey::from_str(&mint_address) {
+    let pubkey = match Pubkey::from_str(mint_address) {
         Ok(pubkey) => pubkey,
-        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.clone())),
+        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.to_string())),
     };
     let metadata_pda = derive_metadata_pda(&pubkey);
 
@@ -35,11 +35,11 @@ pub fn decode_metadata_from_mint(
 
 pub fn decode_master_edition_from_mint(
     client: &RpcClient,
-    mint_address: &String,
+    mint_address: &str,
 ) -> Result<MasterEditionV2, DecodeError> {
-    let pubkey = match Pubkey::from_str(&mint_address) {
+    let pubkey = match Pubkey::from_str(mint_address) {
         Ok(pubkey) => pubkey,
-        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.clone())),
+        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.to_string())),
     };
 
     let edition_pda = derive_edition_pda(&pubkey);
@@ -61,11 +61,11 @@ pub fn decode_master_edition_from_mint(
 
 pub fn decode_edition_from_mint(
     client: &RpcClient,
-    mint_address: &String,
+    mint_address: &str,
 ) -> Result<Edition, DecodeError> {
-    let pubkey = match Pubkey::from_str(&mint_address) {
+    let pubkey = match Pubkey::from_str(mint_address) {
         Ok(pubkey) => pubkey,
-        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.clone())),
+        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.to_string())),
     };
 
     let edition_pda = derive_edition_pda(&pubkey);
