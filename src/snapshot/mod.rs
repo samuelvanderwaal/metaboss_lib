@@ -116,3 +116,40 @@ pub fn get_holder_token_accounts(
 
     Ok(holders)
 }
+
+pub fn get_edition_accounts_by_master(
+    client: &RpcClient,
+    parent_pubkey: &str,
+) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
+    let key_filter = RpcFilterType::Memcmp(Memcmp {
+        offset: 0,
+        bytes: MemcmpEncodedBytes::Base58(EDITION_V1_BS58.to_string()),
+        encoding: None,
+    });
+    let parent_filter = RpcFilterType::Memcmp(Memcmp {
+        offset: 1,
+        bytes: MemcmpEncodedBytes::Base58(parent_pubkey.to_string()),
+        encoding: None,
+    });
+    let filters = vec![key_filter, parent_filter];
+
+    let config = RpcProgramAccountsConfig {
+        filters: Some(filters),
+        account_config: RpcAccountInfoConfig {
+            encoding: Some(UiAccountEncoding::Base64),
+            data_slice: None,
+            commitment: Some(CommitmentConfig {
+                commitment: CommitmentLevel::Confirmed,
+            }),
+        },
+        with_context: None,
+    };
+
+    let accounts = match client.get_program_accounts_with_config(&TOKEN_METADATA_PROGRAM_ID, config)
+    {
+        Ok(accounts) => accounts,
+        Err(err) => return Err(SnapshotError::ClientError(err.kind)),
+    };
+
+    Ok(accounts)
+}
