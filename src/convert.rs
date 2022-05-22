@@ -8,7 +8,7 @@ use crate::data::{NFTCreator, NFTData};
 pub fn convert_local_to_remote_data(local: NFTData) -> Result<Data> {
     let creators = local
         .creators
-        .ok_or(anyhow!("No creators specified in json file!"))?
+        .ok_or_else(|| anyhow!("No creators specified in json file!"))?
         .iter()
         .map(convert_creator)
         .collect::<Result<Vec<Creator>>>()?;

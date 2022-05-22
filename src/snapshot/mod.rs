@@ -33,6 +33,7 @@ pub fn get_metadata_accounts_by_update_authority(
             commitment: Some(CommitmentConfig {
                 commitment: CommitmentLevel::Confirmed,
             }),
+            min_context_slot: None,
         },
         with_context: None,
     };
@@ -63,6 +64,7 @@ pub fn get_metadata_accounts_by_creator(
             commitment: Some(CommitmentConfig {
                 commitment: CommitmentLevel::Confirmed,
             }),
+            min_context_slot: None,
         },
         with_context: None,
     };
@@ -101,6 +103,7 @@ pub fn get_holder_token_accounts(
         commitment: Some(CommitmentConfig {
             commitment: CommitmentLevel::Confirmed,
         }),
+        min_context_slot: None,
     };
 
     let config = RpcProgramAccountsConfig {
@@ -141,6 +144,7 @@ pub fn get_edition_accounts_by_master(
             commitment: Some(CommitmentConfig {
                 commitment: CommitmentLevel::Confirmed,
             }),
+            min_context_slot: None,
         },
         with_context: None,
     };
