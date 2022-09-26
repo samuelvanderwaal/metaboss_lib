@@ -1,6 +1,8 @@
-use metaplex_token_metadata::id;
+use mpl_token_metadata::id;
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
+
+use crate::constants::*;
 
 pub fn derive_generic_pda(seeds: Vec<&[u8]>, program_id: Pubkey) -> Pubkey {
     let (pda, _) = Pubkey::find_program_address(&seeds, &program_id);
@@ -28,6 +30,23 @@ pub fn derive_edition_pda(pubkey: &Pubkey) -> Pubkey {
         metaplex_pubkey.as_ref(),
         pubkey.as_ref(),
         "edition".as_bytes(),
+    ];
+
+    let (pda, _) = Pubkey::find_program_address(seeds, &metaplex_pubkey);
+    pda
+}
+
+pub fn derive_edition_marker_pda(pubkey: &Pubkey, edition_num: u64) -> Pubkey {
+    let metaplex_pubkey = id();
+
+    let num: String = (edition_num / 248).to_string();
+
+    let seeds = &[
+        METADATA_PREFIX.as_bytes(),
+        metaplex_pubkey.as_ref(),
+        pubkey.as_ref(),
+        EDITION_PREFIX.as_bytes(),
+        num.as_bytes(),
     ];
 
     let (pda, _) = Pubkey::find_program_address(seeds, &metaplex_pubkey);

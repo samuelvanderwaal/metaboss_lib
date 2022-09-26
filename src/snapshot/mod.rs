@@ -1,4 +1,4 @@
-use metaplex_token_metadata::ID as TOKEN_METADATA_PROGRAM_ID;
+use mpl_token_metadata::ID as TOKEN_METADATA_PROGRAM_ID;
 use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
     rpc_client::RpcClient,

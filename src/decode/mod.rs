@@ -1,4 +1,4 @@
-use metaplex_token_metadata::state::{Edition, MasterEditionV2, Metadata};
+use mpl_token_metadata::state::{Edition, EditionMarker, MasterEditionV2, Metadata};
 use solana_client::rpc_client::RpcClient;
 use solana_program::borsh::try_from_slice_unchecked;
 use solana_sdk::pubkey::Pubkey;
@@ -83,4 +83,31 @@ pub fn decode_edition_from_mint(
     };
 
     Ok(edition)
+}
+
+pub fn decode_edition_marker_from_mint(
+    client: &RpcClient,
+    mint_address: &str,
+    edition_num: u64,
+) -> Result<EditionMarker, DecodeError> {
+    let pubkey = match Pubkey::from_str(mint_address) {
+        Ok(pubkey) => pubkey,
+        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.to_string())),
+    };
+
+    let edition_marker_pda = derive_edition_marker_pda(&pubkey, edition_num);
+
+    let account_data = match client.get_account_data(&edition_marker_pda) {
+        Ok(data) => data,
+        Err(err) => {
+            return Err(DecodeError::ClientError(err.kind));
+        }
+    };
+
+    let edition_marker: EditionMarker = match try_from_slice_unchecked(&account_data) {
+        Ok(e) => e,
+        Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
+    };
+
+    Ok(edition_marker)
 }

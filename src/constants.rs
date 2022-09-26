@@ -21,3 +21,6 @@ pub const TOKEN_PROGRAM_ID: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 pub const METAPLEX_PROGRAM_ID: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 pub const MINT_LAYOUT_SIZE: u64 = 82;
 pub const EDITION_V1_BS58: &str = "2";
+
+pub const METADATA_PREFIX: &str = "metadata";
+pub const EDITION_PREFIX: &str = "edition";
