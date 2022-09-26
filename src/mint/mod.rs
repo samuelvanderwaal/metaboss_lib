@@ -1,5 +1,5 @@
 use anyhow::Result;
-use metaplex_token_metadata::{
+use mpl_token_metadata::{
     id,
     instruction::{create_master_edition, create_metadata_accounts, update_metadata_accounts},
 };
@@ -63,12 +63,8 @@ pub fn mint(
     let assoc = get_associated_token_address(&receiver, &mint.pubkey());
 
     // Create associated account instruction
-    let create_assoc_account_ix = create_associated_token_account(
-        &funder.pubkey(),
-        &receiver,
-        &mint.pubkey(),
-        &TOKEN_PROGRAM_ID,
-    );
+    let create_assoc_account_ix =
+        create_associated_token_account(&funder.pubkey(), &receiver, &mint.pubkey());
 
     // Mint to instruction
     let mint_to_ix = mint_to(

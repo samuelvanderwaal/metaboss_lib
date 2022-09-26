@@ -1,4 +1,4 @@
-use metaplex_token_metadata::ID as TOKEN_METADATA_PROGRAM_ID;
+use mpl_token_metadata::ID as TOKEN_METADATA_PROGRAM_ID;
 use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
     rpc_client::RpcClient,
@@ -21,12 +21,14 @@ pub fn get_metadata_accounts_by_update_authority(
     client: &RpcClient,
     update_authority: &str,
 ) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
+    #[allow(deprecated)]
+    let filter = RpcFilterType::Memcmp(Memcmp {
+        offset: 1, // key
+        bytes: MemcmpEncodedBytes::Base58(update_authority.to_string()),
+        encoding: None,
+    });
     let config = RpcProgramAccountsConfig {
-        filters: Some(vec![RpcFilterType::Memcmp(Memcmp {
-            offset: 1, // key
-            bytes: MemcmpEncodedBytes::Base58(update_authority.to_string()),
-            encoding: None,
-        })]),
+        filters: Some(vec![filter]),
         account_config: RpcAccountInfoConfig {
             encoding: Some(UiAccountEncoding::Base64),
             data_slice: None,
@@ -52,12 +54,15 @@ pub fn get_metadata_accounts_by_creator(
     creator_id: &str,
     creator_position: usize,
 ) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
+    #[allow(deprecated)]
+    let filter = RpcFilterType::Memcmp(Memcmp {
+        offset: OFFSET_TO_CREATORS + creator_position * PUBKEY_LENGTH,
+        bytes: MemcmpEncodedBytes::Base58(creator_id.to_string()),
+        encoding: None,
+    });
+
     let config = RpcProgramAccountsConfig {
-        filters: Some(vec![RpcFilterType::Memcmp(Memcmp {
-            offset: OFFSET_TO_CREATORS + creator_position * PUBKEY_LENGTH,
-            bytes: MemcmpEncodedBytes::Base58(creator_id.to_string()),
-            encoding: None,
-        })]),
+        filters: Some(vec![filter]),
         account_config: RpcAccountInfoConfig {
             encoding: Some(UiAccountEncoding::Base64),
             data_slice: None,
@@ -91,6 +96,7 @@ pub fn get_holder_token_accounts(
         }
     };
 
+    #[allow(deprecated)]
     let filter1 = RpcFilterType::Memcmp(Memcmp {
         offset: 0,
         bytes: MemcmpEncodedBytes::Base58(mint_account),
@@ -124,11 +130,13 @@ pub fn get_edition_accounts_by_master(
     client: &RpcClient,
     parent_pubkey: &str,
 ) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
+    #[allow(deprecated)]
     let key_filter = RpcFilterType::Memcmp(Memcmp {
         offset: 0,
         bytes: MemcmpEncodedBytes::Base58(EDITION_V1_BS58.to_string()),
         encoding: None,
     });
+    #[allow(deprecated)]
     let parent_filter = RpcFilterType::Memcmp(Memcmp {
         offset: 1,
         bytes: MemcmpEncodedBytes::Base58(parent_pubkey.to_string()),

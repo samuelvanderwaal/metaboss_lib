@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use metaplex_token_metadata::state::{Creator, Data};
+use mpl_token_metadata::state::{Creator, Data};
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
 
