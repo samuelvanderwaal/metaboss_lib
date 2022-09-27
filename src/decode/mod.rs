@@ -1,4 +1,6 @@
-use mpl_token_metadata::state::{Edition, EditionMarker, MasterEditionV2, Metadata};
+use mpl_token_metadata::state::{
+    Edition, EditionMarker, MasterEditionV2, Metadata, TokenMetadataAccount,
+};
 use solana_client::rpc_client::RpcClient;
 use solana_program::borsh::try_from_slice_unchecked;
 use solana_sdk::pubkey::Pubkey;
@@ -104,7 +106,7 @@ pub fn decode_edition_marker_from_mint(
         }
     };
 
-    let edition_marker: EditionMarker = match try_from_slice_unchecked(&account_data) {
+    let edition_marker: EditionMarker = match EditionMarker::safe_deserialize(&account_data) {
         Ok(e) => e,
         Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
     };
