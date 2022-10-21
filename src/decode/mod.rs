@@ -2,8 +2,9 @@ use mpl_token_metadata::state::{
     Edition, EditionMarker, MasterEditionV2, Metadata, TokenMetadataAccount,
 };
 use solana_client::rpc_client::RpcClient;
-use solana_program::borsh::try_from_slice_unchecked;
+use solana_program::{borsh::try_from_slice_unchecked, program_pack::Pack};
 use solana_sdk::pubkey::Pubkey;
+use spl_token::state::Mint;
 use std::str::FromStr;
 
 pub mod errors;
@@ -85,6 +86,27 @@ pub fn decode_edition_from_mint(
     };
 
     Ok(edition)
+}
+
+pub fn decode_mint(client: &RpcClient, mint_address: &str) -> Result<Mint, DecodeError> {
+    let pubkey = match Pubkey::from_str(mint_address) {
+        Ok(pubkey) => pubkey,
+        Err(_) => return Err(DecodeError::PubkeyParseFailed(mint_address.to_string())),
+    };
+
+    let account = match client.get_account(&pubkey) {
+        Ok(account) => account,
+        Err(err) => {
+            return Err(DecodeError::ClientError(err.kind));
+        }
+    };
+
+    let mint = match Mint::unpack(&account.data) {
+        Ok(m) => m,
+        Err(err) => return Err(DecodeError::DecodeDataFailed(err.to_string())),
+    };
+
+    Ok(mint)
 }
 
 pub fn decode_edition_marker_from_mint(
