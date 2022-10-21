@@ -14,4 +14,7 @@ pub enum DecodeError {
 
     #[error("failed to decode metadata")]
     DecodeMetadataFailed(String),
+
+    #[error("failed to decode account data")]
+    DecodeDataFailed(String),
 }
