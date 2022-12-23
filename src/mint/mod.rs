@@ -1,7 +1,9 @@
 use anyhow::Result;
 use mpl_token_metadata::{
     id,
-    instruction::{create_master_edition, create_metadata_accounts, update_metadata_accounts},
+    instruction::{
+        create_master_edition_v3, create_metadata_accounts, update_metadata_accounts_v2,
+    },
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
@@ -111,7 +113,7 @@ pub fn mint(
         !immutable,
     );
 
-    let create_master_edition_account_ix = create_master_edition(
+    let create_master_edition_account_ix = create_master_edition_v3(
         metaplex_program_id,
         master_edition_account,
         mint.pubkey(),
@@ -132,13 +134,14 @@ pub fn mint(
     ];
 
     if primary_sale_happened {
-        let ix = update_metadata_accounts(
+        let ix = update_metadata_accounts_v2(
             metaplex_program_id,
             metadata_account,
             funder.pubkey(),
             None,
             None,
             Some(true),
+            None,
         );
         instructions.push(ix);
     }
