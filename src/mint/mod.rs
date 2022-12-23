@@ -2,7 +2,7 @@ use anyhow::Result;
 use mpl_token_metadata::{
     id,
     instruction::{
-        create_master_edition_v3, create_metadata_accounts, update_metadata_accounts_v2,
+        create_master_edition_v3, create_metadata_accounts_v3, update_metadata_accounts_v2,
     },
 };
 use retry::{delay::Exponential, retry};
@@ -97,7 +97,7 @@ pub fn mint(
     let (master_edition_account, _pda) =
         Pubkey::find_program_address(master_edition_seeds, &metaplex_program_id);
 
-    let create_metadata_account_ix = create_metadata_accounts(
+    let create_metadata_account_ix = create_metadata_accounts_v3(
         metaplex_program_id,
         metadata_account,
         mint.pubkey(),
@@ -111,6 +111,9 @@ pub fn mint(
         data.seller_fee_basis_points,
         true,
         !immutable,
+        None,
+        None,
+        None,
     );
 
     let create_master_edition_account_ix = create_master_edition_v3(
