@@ -4,7 +4,7 @@ use mpl_token_metadata::state::{
 use solana_client::rpc_client::RpcClient;
 use solana_program::program_pack::Pack;
 use solana_sdk::pubkey::Pubkey;
-use spl_token::state::Mint;
+use spl_token::state::{Account as Token, Mint};
 use std::str::FromStr;
 
 pub mod errors;
@@ -129,6 +129,27 @@ pub fn decode_mint<P: ToPubkey>(client: &RpcClient, mint_address: P) -> Result<M
     };
 
     Ok(mint)
+}
+
+pub fn decode_token<P: ToPubkey>(
+    client: &RpcClient,
+    token_address: P,
+) -> Result<Token, DecodeError> {
+    let pubkey = token_address.to_pubkey()?;
+
+    let account_data = match client.get_account_data(&pubkey) {
+        Ok(data) => data,
+        Err(err) => {
+            return Err(DecodeError::ClientError(err.kind));
+        }
+    };
+
+    let token_account: Token = match Token::unpack(&account_data) {
+        Ok(t) => t,
+        Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
+    };
+
+    Ok(token_account)
 }
 
 pub fn decode_edition_marker_from_mint<P: ToPubkey>(
