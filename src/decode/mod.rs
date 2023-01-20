@@ -2,8 +2,8 @@ use mpl_token_metadata::state::{
     Edition, EditionMarker, MasterEditionV2, Metadata, TokenMetadataAccount,
 };
 use solana_client::rpc_client::RpcClient;
-use solana_program::program_pack::Pack;
-use solana_sdk::pubkey::Pubkey;
+use solana_program::{bpf_loader_upgradeable::UpgradeableLoaderState, program_pack::Pack};
+use solana_sdk::{account_utils::StateMut, pubkey::Pubkey};
 use spl_token::state::{Account as Token, Mint};
 use std::str::FromStr;
 
@@ -174,4 +174,21 @@ pub fn decode_edition_marker_from_mint<P: ToPubkey>(
     };
 
     Ok(edition_marker)
+}
+
+pub fn decode_bpf_loader_upgradeable_state<P: ToPubkey>(
+    client: &RpcClient,
+    program_address: P,
+) -> Result<UpgradeableLoaderState, DecodeError> {
+    let pubkey = program_address.to_pubkey()?;
+
+    let account = client
+        .get_account(&pubkey)
+        .map_err(|err| DecodeError::ClientError(err.kind))?;
+
+    let upgradeable_loader_state: UpgradeableLoaderState = account
+        .state()
+        .map_err(|err| DecodeError::DeserializationFailed(err.to_string()))?;
+
+    Ok(upgradeable_loader_state)
 }

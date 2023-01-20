@@ -17,4 +17,7 @@ pub enum DecodeError {
 
     #[error("failed to decode account data")]
     DecodeDataFailed(String),
+
+    #[error("failed to deserialize account data: {0}")]
+    DeserializationFailed(String),
 }
