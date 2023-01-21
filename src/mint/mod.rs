@@ -65,8 +65,12 @@ pub fn mint(
     let assoc = get_associated_token_address(&receiver, &mint.pubkey());
 
     // Create associated account instruction
-    let create_assoc_account_ix =
-        create_associated_token_account(&funder.pubkey(), &receiver, &mint.pubkey());
+    let create_assoc_account_ix = create_associated_token_account(
+        &funder.pubkey(),
+        &receiver,
+        &mint.pubkey(),
+        &spl_token::ID,
+    );
 
     // Mint to instruction
     let mint_to_ix = mint_to(
