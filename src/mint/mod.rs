@@ -9,6 +9,7 @@ use mpl_token_metadata::{
     state::{AssetData, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
+use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
     pubkey::Pubkey,
@@ -49,6 +50,7 @@ pub struct MintResult {
     pub mint: Pubkey,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum PrintSupply {
     Zero,
     Limited(u64),
