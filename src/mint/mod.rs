@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use anyhow::{anyhow, bail, Result};
 use mpl_token_metadata::{
     id,
@@ -55,6 +57,18 @@ pub enum PrintSupply {
     Zero,
     Limited(u64),
     Unlimited,
+}
+
+impl FromStr for PrintSupply {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "0" => Ok(PrintSupply::Zero),
+            "Unlimited" => Ok(PrintSupply::Unlimited),
+            _ => Ok(PrintSupply::Limited(s.parse()?)),
+        }
+    }
 }
 
 pub fn mint_asset<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs) -> Result<MintResult> {
