@@ -1,4 +1,4 @@
-use mpl_token_metadata::id;
+use mpl_token_metadata::{id, state::TOKEN_RECORD_SEED};
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
 
@@ -60,6 +60,21 @@ pub fn derive_cmv2_pda(pubkey: &Pubkey) -> Pubkey {
     let seeds = &["candy_machine".as_bytes(), pubkey.as_ref()];
 
     let (pda, _) = Pubkey::find_program_address(seeds, &cmv2_pubkey);
+    pda
+}
+
+pub fn derive_token_record_pda(mint: &Pubkey, token_owner: &Pubkey) -> Pubkey {
+    let (pda, _bump) = Pubkey::find_program_address(
+        &[
+            METADATA_PREFIX.as_bytes(),
+            mpl_token_metadata::ID.as_ref(),
+            mint.as_ref(),
+            TOKEN_RECORD_SEED.as_bytes(),
+            token_owner.as_ref(),
+        ],
+        &mpl_token_metadata::ID,
+    );
+
     pda
 }
 

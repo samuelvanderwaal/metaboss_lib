@@ -1,9 +1,12 @@
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use mpl_token_metadata::{
     id,
     instruction::{
+        builders::{CreateBuilder, MintBuilder},
         create_master_edition_v3, create_metadata_accounts_v3, update_metadata_accounts_v2,
+        CreateArgs, InstructionBuilder, MintArgs,
     },
+    state::{AssetData, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
@@ -22,9 +25,149 @@ use spl_token::{
     ID as TOKEN_PROGRAM_ID,
 };
 
-use crate::constants::MINT_LAYOUT_SIZE;
 use crate::convert::convert_local_to_remote_data;
-use crate::data::NFTData;
+use crate::{constants::MINT_LAYOUT_SIZE, decode::ToPubkey};
+use crate::{
+    data::{NFTData, Nft},
+    derive::derive_token_record_pda,
+};
+
+pub enum MintAssetArgs {
+    V1 {
+        payer: Keypair,
+        authority: Keypair,
+        receiver: Pubkey,
+        asset_data: AssetData,
+        max_print_edition_supply: Option<PrintSupply>,
+        mint_decimals: Option<u8>,
+        amount: u64,
+    },
+}
+
+pub struct MintResult {
+    pub signature: Signature,
+    pub mint: Pubkey,
+}
+
+pub enum PrintSupply {
+    Zero,
+    Limited(u64),
+    Unlimited,
+}
+
+pub fn mint_asset<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs) -> Result<MintResult> {
+    match args {
+        MintAssetArgs::V1 { .. } => mint_asset_v1(client, args),
+    }
+}
+
+fn mint_asset_v1(client: &RpcClient, args: MintAssetArgs) -> Result<MintResult> {
+    let MintAssetArgs::V1 {
+        payer,
+        authority,
+        receiver,
+        asset_data,
+        max_print_edition_supply,
+        mint_decimals,
+        amount,
+    } = args;
+
+    let mint = Keypair::new();
+    let nft = Nft::new(mint);
+    let receiver = receiver.to_pubkey()?;
+
+    let token_standard = asset_data.token_standard;
+
+    // Try to protect the user from setting the wrong max edition supply for non-fungibles.
+    let max_supply = match token_standard {
+        TokenStandard::NonFungible | TokenStandard::ProgrammableNonFungible => {
+            if max_print_edition_supply.is_none() {
+                bail!("Max print edition supply must be set for non-fungible assets");
+            }
+            match max_print_edition_supply.unwrap() {
+                PrintSupply::Zero => Some(0),
+                PrintSupply::Limited(supply) => Some(supply),
+                PrintSupply::Unlimited => None,
+            }
+        }
+        TokenStandard::Fungible | TokenStandard::FungibleAsset => {
+            if max_print_edition_supply.is_some() {
+                bail!("Max print edition supply must not be set for fungible assets");
+            }
+            // This isn't used for fungible assets, but we need to set it to something, so we'll
+            // set it to 0 print editions, just in case.
+            Some(0)
+        }
+        _ => bail!("Invalid token standard"),
+    };
+
+    let create_args = CreateArgs::V1 {
+        asset_data,
+        decimals: mint_decimals,
+        max_supply,
+    };
+
+    let create_ix = CreateBuilder::new()
+        .mint(nft.mint.pubkey())
+        .metadata(nft.metadata)
+        .master_edition(nft.edition)
+        .authority(authority.pubkey())
+        .payer(payer.pubkey())
+        .update_authority(authority.pubkey())
+        .initialize_mint(true)
+        .update_authority_as_signer(true)
+        .build(create_args)
+        .map_err(|e| anyhow!(e.to_string()))?
+        .instruction();
+
+    if matches!(
+        token_standard,
+        TokenStandard::NonFungible | TokenStandard::ProgrammableNonFungible
+    ) && amount != 1
+    {
+        bail!("Non-fungible assets must have an amount of 1");
+    }
+
+    let token_ata = get_associated_token_address(&receiver, &nft.mint.pubkey());
+
+    let token_record = derive_token_record_pda(&nft.mint.pubkey(), &token_ata);
+
+    let mint_args = MintArgs::V1 {
+        amount,
+        authorization_data: None,
+    };
+
+    let mint_ix = MintBuilder::new()
+        .metadata(nft.metadata)
+        .token_owner(receiver)
+        .token_record(token_record)
+        .mint(nft.mint.pubkey())
+        .authority(authority.pubkey())
+        .payer(payer.pubkey())
+        .build(mint_args)
+        .map_err(|e| anyhow!(e.to_string()))?
+        .instruction();
+
+    let recent_blockhash = client.get_latest_blockhash()?;
+    let tx = Transaction::new_signed_with_payer(
+        &[create_ix, mint_ix],
+        Some(&payer.pubkey()),
+        &[&payer, &authority, &nft.mint],
+        recent_blockhash,
+    );
+
+    // Send tx with retries.
+    let res = retry(
+        Exponential::from_millis_with_factor(250, 2.0).take(3),
+        || client.send_and_confirm_transaction(&tx),
+    );
+    let sig = res?;
+
+    Ok(MintResult {
+        signature: sig,
+        mint: nft.mint.pubkey(),
+    })
+}
 
 pub fn mint(
     client: &RpcClient,
