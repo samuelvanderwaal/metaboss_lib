@@ -1,19 +1,23 @@
+use mpl_token_metadata::state::Metadata;
 use serde::{Deserialize, Serialize};
+use solana_client::rpc_client::RpcClient;
 use solana_program::pubkey::Pubkey;
-use solana_sdk::{signature::Keypair, signer::Signer};
 
-use crate::derive::{derive_edition_pda, derive_metadata_pda, derive_token_record_pda};
+use crate::{
+    decode::{decode_metadata, errors::DecodeError},
+    derive::{derive_edition_pda, derive_metadata_pda, derive_token_record_pda},
+};
 
 pub struct Nft {
-    pub mint: Keypair,
+    pub mint: Pubkey,
     pub metadata: Pubkey,
     pub edition: Pubkey,
 }
 
 impl Nft {
-    pub fn new(mint: Keypair) -> Self {
-        let metadata = derive_metadata_pda(&mint.pubkey());
-        let edition = derive_edition_pda(&mint.pubkey());
+    pub fn new(mint: Pubkey) -> Self {
+        let metadata = derive_metadata_pda(&mint);
+        let edition = derive_edition_pda(&mint);
 
         Self {
             mint,
@@ -22,7 +26,11 @@ impl Nft {
         }
     }
     pub fn get_token_record(&self, token: &Pubkey) -> Pubkey {
-        derive_token_record_pda(&self.mint.pubkey(), token)
+        derive_token_record_pda(&self.mint, token)
+    }
+
+    pub(crate) fn get_metadata(&self, client: &RpcClient) -> Result<Metadata, DecodeError> {
+        decode_metadata(client, &self.metadata)
     }
 }
 
