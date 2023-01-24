@@ -6,7 +6,7 @@ use serde_json::json;
 use solana_client::{rpc_client::RpcClient, rpc_request::RpcRequest};
 use solana_program::pubkey::Pubkey;
 
-pub fn get_nft_token_account(client: &RpcClient, mint: Pubkey) -> Result<Pubkey> {
+pub fn get_nft_token_account(client: &RpcClient, mint: &str) -> Result<Pubkey> {
     let request = RpcRequest::Custom {
         method: "getTokenLargestAccounts",
     };
