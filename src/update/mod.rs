@@ -17,7 +17,7 @@ pub enum UpdateAssetArgs<'a, P: ToPubkey> {
         mint: P,
         token: Option<P>,
         delegate_record: Option<P>,
-        rule_set: Option<P>,
+        current_rule_set: Option<P>,
         update_args: UpdateArgs,
     },
 }
@@ -38,7 +38,7 @@ fn update_asset_v1<P: ToPubkey>(client: &RpcClient, args: UpdateAssetArgs<P>) ->
         mint,
         token,
         delegate_record,
-        rule_set,
+        current_rule_set,
         update_args,
     } = args;
 
@@ -49,7 +49,7 @@ fn update_asset_v1<P: ToPubkey>(client: &RpcClient, args: UpdateAssetArgs<P>) ->
 
     let token = token.map(|t| t.to_pubkey()).transpose()?;
     let delegate_record = delegate_record.map(|t| t.to_pubkey()).transpose()?;
-    let rule_set = rule_set.map(|t| t.to_pubkey()).transpose()?;
+    let rule_set = current_rule_set.map(|t| t.to_pubkey()).transpose()?;
 
     let mut update_builder = UpdateBuilder::new();
     update_builder
