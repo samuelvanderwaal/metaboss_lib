@@ -1,7 +1,9 @@
+use anyhow::Result;
 use mpl_token_metadata::state::Metadata;
 use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
-use solana_program::pubkey::Pubkey;
+use solana_program::{program_pack::Pack, pubkey::Pubkey};
+use spl_token::state::Account as TokenAccount;
 
 use crate::{
     decode::{decode_metadata, errors::DecodeError},
@@ -31,6 +33,12 @@ impl Nft {
 
     pub(crate) fn get_metadata(&self, client: &RpcClient) -> Result<Metadata, DecodeError> {
         decode_metadata(client, &self.metadata)
+    }
+
+    pub(crate) fn _get_token_owner(client: &RpcClient, token: &Pubkey) -> Result<Pubkey> {
+        let data = client.get_account_data(token)?;
+        let owner = TokenAccount::unpack(&data)?.owner;
+        Ok(owner)
     }
 }
 

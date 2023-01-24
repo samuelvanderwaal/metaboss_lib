@@ -28,18 +28,18 @@ pub enum TransferAssetArgs<'a, P: ToPubkey> {
     },
 }
 
-pub fn transfer_asset<'a, P: ToPubkey>(
+pub fn transfer_asset<P: ToPubkey>(
     client: &RpcClient,
-    args: TransferAssetArgs<'a, P>,
+    args: TransferAssetArgs<P>,
 ) -> Result<Signature> {
     match args {
         TransferAssetArgs::V1 { .. } => transfer_asset_v1(client, args),
     }
 }
 
-fn transfer_asset_v1<'a, P: ToPubkey>(
+fn transfer_asset_v1<P: ToPubkey>(
     client: &RpcClient,
-    args: TransferAssetArgs<'a, P>,
+    args: TransferAssetArgs<P>,
 ) -> Result<Signature> {
     let TransferAssetArgs::V1 {
         payer,
@@ -86,21 +86,19 @@ fn transfer_asset_v1<'a, P: ToPubkey>(
         Some(TokenStandard::ProgrammableNonFungible)
     ) {
         // Always need the token records for pNFTs.
-        let source_token_record = nft.get_token_record(&source_owner);
-        let destination_token_record = nft.get_token_record(&destination_owner);
+        let source_token_record = nft.get_token_record(&source_token);
+        let destination_token_record = nft.get_token_record(&destination_token);
         transfer_builder
             .owner_token_record(source_token_record)
             .destination_token_record(destination_token_record);
 
         // If the asset's metadata account has auth rules set, we need to pass the
         // account in.
-        if let Some(config) = md.programmable_config {
-            if let ProgrammableConfig::V1 {
-                rule_set: Some(auth_rules),
-            } = config
-            {
-                transfer_builder.authorization_rules(auth_rules);
-            }
+        if let Some(ProgrammableConfig::V1 {
+            rule_set: Some(auth_rules),
+        }) = md.programmable_config
+        {
+            transfer_builder.authorization_rules(auth_rules);
         }
     }
 

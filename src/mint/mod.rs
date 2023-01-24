@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use anyhow::{anyhow, bail, Result};
 use mpl_token_metadata::{
     id,
@@ -9,10 +7,9 @@ use mpl_token_metadata::{
         CreateArgs, InstructionBuilder, MintArgs,
     },
     processor::AuthorizationData,
-    state::{AssetData, TokenStandard},
+    state::{AssetData, PrintSupply, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
-use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
     pubkey::Pubkey,
@@ -42,7 +39,7 @@ pub enum MintAssetArgs<'a, P: ToPubkey> {
         authority: &'a Keypair,
         receiver: P,
         asset_data: AssetData,
-        max_print_edition_supply: Option<PrintSupply>,
+        print_supply: Option<PrintSupply>,
         mint_decimals: Option<u8>,
         amount: u64,
         authorization_data: Option<AuthorizationData>,
@@ -54,44 +51,19 @@ pub struct MintResult {
     pub mint: Pubkey,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum PrintSupply {
-    Zero,
-    Limited(u64),
-    Unlimited,
-}
-
-impl FromStr for PrintSupply {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "0" => Ok(PrintSupply::Zero),
-            "Unlimited" => Ok(PrintSupply::Unlimited),
-            _ => Ok(PrintSupply::Limited(s.parse()?)),
-        }
-    }
-}
-
-pub fn mint_asset<'a, P: ToPubkey>(
-    client: &RpcClient,
-    args: MintAssetArgs<'a, P>,
-) -> Result<MintResult> {
+pub fn mint_asset<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Result<MintResult> {
     match args {
         MintAssetArgs::V1 { .. } => mint_asset_v1(client, args),
     }
 }
 
-fn mint_asset_v1<'a, P: ToPubkey>(
-    client: &RpcClient,
-    args: MintAssetArgs<'a, P>,
-) -> Result<MintResult> {
+fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Result<MintResult> {
     let MintAssetArgs::V1 {
         payer,
         authority,
         receiver,
         asset_data,
-        max_print_edition_supply,
+        print_supply,
         mint_decimals,
         amount,
         authorization_data,
@@ -105,33 +77,10 @@ fn mint_asset_v1<'a, P: ToPubkey>(
 
     let token_standard = asset_data.token_standard;
 
-    // Try to protect the user from setting the wrong max edition supply for non-fungibles.
-    let max_supply = match token_standard {
-        TokenStandard::NonFungible | TokenStandard::ProgrammableNonFungible => {
-            if max_print_edition_supply.is_none() {
-                bail!("Max print edition supply must be set for non-fungible assets");
-            }
-            match max_print_edition_supply.unwrap() {
-                PrintSupply::Zero => Some(0),
-                PrintSupply::Limited(supply) => Some(supply),
-                PrintSupply::Unlimited => None,
-            }
-        }
-        TokenStandard::Fungible | TokenStandard::FungibleAsset => {
-            if max_print_edition_supply.is_some() {
-                bail!("Max print edition supply must not be set for fungible assets");
-            }
-            // This isn't used for fungible assets, but we need to set it to something, so we'll
-            // set it to 0 print editions, just in case.
-            Some(0)
-        }
-        _ => bail!("Invalid token standard"),
-    };
-
     let create_args = CreateArgs::V1 {
         asset_data,
         decimals: mint_decimals,
-        max_supply,
+        print_supply,
     };
 
     let create_ix = CreateBuilder::new()
