@@ -34,19 +34,12 @@ impl ToPubkey for Pubkey {
 }
 
 pub fn decode_metadata(client: &RpcClient, pubkey: &Pubkey) -> Result<Metadata, DecodeError> {
-    let account_data = match client.get_account_data(pubkey) {
-        Ok(data) => data,
-        Err(err) => {
-            return Err(DecodeError::ClientError(err.kind));
-        }
-    };
+    let account_data = client
+        .get_account_data(pubkey)
+        .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    let metadata: Metadata = match Metadata::safe_deserialize(&account_data) {
-        Ok(m) => m,
-        Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
-    };
-
-    Ok(metadata)
+    Metadata::safe_deserialize(&account_data)
+        .map_err(|e| DecodeError::DecodeMetadataFailed(e.to_string()))
 }
 
 pub fn decode_master(client: &RpcClient, pubkey: &Pubkey) -> Result<MasterEditionV2, DecodeError> {
