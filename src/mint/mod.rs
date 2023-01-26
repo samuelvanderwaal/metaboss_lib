@@ -108,7 +108,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
 
     // Should be derived from the token_account, not token_owner, but needs to be fixed in Token Metadata.
     // let token_record = derive_token_record_pda(&nft.mint.pubkey(), &token_ata);
-    let token_record = derive_token_record_pda(&nft.mint, &receiver);
+    let token_record = derive_token_record_pda(&nft.mint, &token_ata);
 
     let mint_args = MintArgs::V1 {
         amount,
