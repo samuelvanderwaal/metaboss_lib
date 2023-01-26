@@ -1,9 +1,13 @@
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use mpl_token_metadata::{
     id,
     instruction::{
+        builders::{CreateBuilder, MintBuilder},
         create_master_edition_v3, create_metadata_accounts_v3, update_metadata_accounts_v2,
+        CreateArgs, InstructionBuilder, MintArgs,
     },
+    processor::AuthorizationData,
+    state::{AssetData, PrintSupply, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
@@ -22,9 +26,128 @@ use spl_token::{
     ID as TOKEN_PROGRAM_ID,
 };
 
-use crate::constants::MINT_LAYOUT_SIZE;
 use crate::convert::convert_local_to_remote_data;
-use crate::data::NFTData;
+use crate::{constants::MINT_LAYOUT_SIZE, decode::ToPubkey};
+use crate::{
+    data::{NFTData, Nft},
+    derive::derive_token_record_pda,
+};
+
+pub enum MintAssetArgs<'a, P: ToPubkey> {
+    V1 {
+        payer: Option<&'a Keypair>,
+        authority: &'a Keypair,
+        receiver: P,
+        asset_data: AssetData,
+        print_supply: Option<PrintSupply>,
+        mint_decimals: Option<u8>,
+        amount: u64,
+        authorization_data: Option<AuthorizationData>,
+    },
+}
+
+pub struct MintResult {
+    pub signature: Signature,
+    pub mint: Pubkey,
+}
+
+pub fn mint_asset<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Result<MintResult> {
+    match args {
+        MintAssetArgs::V1 { .. } => mint_asset_v1(client, args),
+    }
+}
+
+fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Result<MintResult> {
+    let MintAssetArgs::V1 {
+        payer,
+        authority,
+        receiver,
+        asset_data,
+        print_supply,
+        mint_decimals,
+        amount,
+        authorization_data,
+    } = args;
+
+    let mint_signer = Keypair::new();
+    let nft = Nft::new(mint_signer.pubkey());
+    let receiver = receiver.to_pubkey()?;
+
+    let payer = payer.unwrap_or(authority);
+
+    let token_standard = asset_data.token_standard;
+
+    let create_args = CreateArgs::V1 {
+        asset_data,
+        decimals: mint_decimals,
+        print_supply,
+    };
+
+    let create_ix = CreateBuilder::new()
+        .mint(nft.mint)
+        .metadata(nft.metadata)
+        .master_edition(nft.edition)
+        .authority(authority.pubkey())
+        .payer(payer.pubkey())
+        .update_authority(authority.pubkey())
+        .initialize_mint(true)
+        .update_authority_as_signer(true)
+        .build(create_args)
+        .map_err(|e| anyhow!(e.to_string()))?
+        .instruction();
+
+    if matches!(
+        token_standard,
+        TokenStandard::NonFungible | TokenStandard::ProgrammableNonFungible
+    ) && amount != 1
+    {
+        bail!("Non-fungible assets must have an amount of 1");
+    }
+
+    let token_ata = get_associated_token_address(&receiver, &nft.mint);
+
+    // Should be derived from the token_account, not token_owner, but needs to be fixed in Token Metadata.
+    // let token_record = derive_token_record_pda(&nft.mint.pubkey(), &token_ata);
+    let token_record = derive_token_record_pda(&nft.mint, &token_ata);
+
+    let mint_args = MintArgs::V1 {
+        amount,
+        authorization_data,
+    };
+
+    let mint_ix = MintBuilder::new()
+        .metadata(nft.metadata)
+        .master_edition(nft.edition)
+        .token(token_ata)
+        .token_owner(receiver)
+        .token_record(token_record)
+        .mint(nft.mint)
+        .authority(authority.pubkey())
+        .payer(payer.pubkey())
+        .build(mint_args)
+        .map_err(|e| anyhow!(e.to_string()))?
+        .instruction();
+
+    let recent_blockhash = client.get_latest_blockhash()?;
+    let tx = Transaction::new_signed_with_payer(
+        &[create_ix, mint_ix],
+        Some(&payer.pubkey()),
+        &[payer, authority, &mint_signer],
+        recent_blockhash,
+    );
+
+    // Send tx with retries.
+    let res = retry(
+        Exponential::from_millis_with_factor(250, 2.0).take(3),
+        || client.send_and_confirm_transaction(&tx),
+    );
+    let sig = res?;
+
+    Ok(MintResult {
+        signature: sig,
+        mint: nft.mint,
+    })
+}
 
 pub fn mint(
     client: &RpcClient,
@@ -65,8 +188,12 @@ pub fn mint(
     let assoc = get_associated_token_address(&receiver, &mint.pubkey());
 
     // Create associated account instruction
-    let create_assoc_account_ix =
-        create_associated_token_account(&funder.pubkey(), &receiver, &mint.pubkey());
+    let create_assoc_account_ix = create_associated_token_account(
+        &funder.pubkey(),
+        &receiver,
+        &mint.pubkey(),
+        &spl_token::ID,
+    );
 
     // Mint to instruction
     let mint_to_ix = mint_to(
