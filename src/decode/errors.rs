@@ -15,9 +15,15 @@ pub enum DecodeError {
     #[error("failed to decode metadata")]
     DecodeMetadataFailed(String),
 
-    #[error("failed to decode account data")]
+    #[error("failed to decode account data: {0}")]
     DecodeDataFailed(String),
 
     #[error("failed to deserialize account data: {0}")]
     DeserializationFailed(String),
+
+    #[error("RuleSetRevisionNotAvailable")]
+    RuleSetRevisionNotAvailable,
+
+    #[error("Numerical overflow")]
+    NumericalOverflow,
 }

@@ -1,6 +1,13 @@
+use anyhow::Result;
+use borsh::BorshDeserialize;
+use mpl_token_auth_rules::{
+    error::RuleSetError,
+    state::{RuleSetHeader, RuleSetRevisionMapV1, RuleSetV1, RULE_SET_SERIALIZED_HEADER_LEN},
+};
 use mpl_token_metadata::state::{
     Edition, EditionMarker, MasterEditionV2, Metadata, TokenMetadataAccount,
 };
+
 use solana_client::rpc_client::RpcClient;
 use solana_program::{bpf_loader_upgradeable::UpgradeableLoaderState, program_pack::Pack};
 use solana_sdk::{account_utils::StateMut, pubkey::Pubkey};
@@ -8,8 +15,10 @@ use spl_token::state::{Account as Token, Mint};
 use std::str::FromStr;
 
 pub mod errors;
+mod rule_set;
 use crate::derive::*;
 use errors::DecodeError;
+pub use rule_set::*;
 
 pub trait ToPubkey {
     fn to_pubkey(self) -> Result<Pubkey, DecodeError>;
@@ -30,6 +39,12 @@ impl ToPubkey for &str {
 impl ToPubkey for Pubkey {
     fn to_pubkey(self) -> Result<Pubkey, DecodeError> {
         Ok(self)
+    }
+}
+
+impl ToPubkey for [u8; 32] {
+    fn to_pubkey(self) -> Result<Pubkey, DecodeError> {
+        Ok(Pubkey::new_from_array(self))
     }
 }
 
