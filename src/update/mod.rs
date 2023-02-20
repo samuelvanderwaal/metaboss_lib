@@ -10,28 +10,43 @@ use solana_sdk::{
 
 use crate::{data::Nft, decode::ToPubkey};
 
-pub enum UpdateAssetArgs<'a, P: ToPubkey> {
+pub enum UpdateAssetArgs<'a, P1, P2, P3, P4: ToPubkey> {
     V1 {
         payer: Option<&'a Keypair>,
         authority: &'a Keypair,
-        mint: P,
-        token: Option<P>,
-        delegate_record: Option<P>,
-        current_rule_set: Option<P>,
+        mint: P1,
+        token: Option<P2>,
+        delegate_record: Option<P3>,
+        current_rule_set: Option<P4>,
         update_args: UpdateArgs,
     },
 }
 
-pub fn update_asset<P: ToPubkey>(
+pub fn update_asset<P1, P2, P3, P4>(
     client: &RpcClient,
-    args: UpdateAssetArgs<P>,
-) -> Result<Signature> {
+    args: UpdateAssetArgs<P1, P2, P3, P4>,
+) -> Result<Signature>
+where
+    P1: ToPubkey,
+    P2: ToPubkey,
+    P3: ToPubkey,
+    P4: ToPubkey,
+{
     match args {
         UpdateAssetArgs::V1 { .. } => update_asset_v1(client, args),
     }
 }
 
-fn update_asset_v1<P: ToPubkey>(client: &RpcClient, args: UpdateAssetArgs<P>) -> Result<Signature> {
+fn update_asset_v1<P1, P2, P3, P4>(
+    client: &RpcClient,
+    args: UpdateAssetArgs<P1, P2, P3, P4>,
+) -> Result<Signature>
+where
+    P1: ToPubkey,
+    P2: ToPubkey,
+    P3: ToPubkey,
+    P4: ToPubkey,
+{
     let UpdateAssetArgs::V1 {
         payer,
         authority,
