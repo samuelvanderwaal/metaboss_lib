@@ -29,7 +29,7 @@ use spl_token::{
 use crate::convert::convert_local_to_remote_data;
 use crate::{constants::MINT_LAYOUT_SIZE, decode::ToPubkey};
 use crate::{
-    data::{NFTData, Nft},
+    data::{Asset, NFTData},
     derive::derive_token_record_pda,
 };
 
@@ -70,7 +70,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
     } = args;
 
     let mint_signer = Keypair::new();
-    let nft = Nft::new(mint_signer.pubkey());
+    let mut asset = Asset::new(mint_signer.pubkey());
     let receiver = receiver.to_pubkey()?;
 
     let payer = payer.unwrap_or(authority);
@@ -83,32 +83,45 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         print_supply,
     };
 
-    let create_ix = CreateBuilder::new()
-        .mint(nft.mint)
-        .metadata(nft.metadata)
-        .master_edition(nft.edition)
+    let mut create_builder = CreateBuilder::new();
+    create_builder
+        .mint(asset.mint)
+        .metadata(asset.metadata)
         .authority(authority.pubkey())
         .payer(payer.pubkey())
         .update_authority(authority.pubkey())
         .initialize_mint(true)
-        .update_authority_as_signer(true)
-        .build(create_args)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+        .update_authority_as_signer(true);
+
+    let token_ata = get_associated_token_address(&receiver, &asset.mint);
+    let token_record = derive_token_record_pda(&asset.mint, &token_ata);
+
+    let mut mint_builder = MintBuilder::new();
+    mint_builder
+        .metadata(asset.metadata)
+        .token(token_ata)
+        .token_owner(receiver)
+        .token_record(token_record)
+        .mint(asset.mint)
+        .authority(authority.pubkey())
+        .payer(payer.pubkey());
 
     if matches!(
         token_standard,
         TokenStandard::NonFungible | TokenStandard::ProgrammableNonFungible
-    ) && amount != 1
-    {
-        bail!("Non-fungible assets must have an amount of 1");
+    ) {
+        if amount != 1 {
+            bail!("Non-fungible assets must have an amount of 1");
+        }
+        asset.add_edition();
+        create_builder.master_edition(asset.edition.unwrap());
+        mint_builder.master_edition(asset.edition.unwrap());
     }
 
-    let token_ata = get_associated_token_address(&receiver, &nft.mint);
-
-    // Should be derived from the token_account, not token_owner, but needs to be fixed in Token Metadata.
-    // let token_record = derive_token_record_pda(&nft.mint.pubkey(), &token_ata);
-    let token_record = derive_token_record_pda(&nft.mint, &token_ata);
+    let create_ix = create_builder
+        .build(create_args)
+        .map_err(|e| anyhow!(e.to_string()))?
+        .instruction();
 
     let mint_args = MintArgs::V1 {
         amount,
@@ -116,14 +129,6 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
     };
 
     let mint_ix = MintBuilder::new()
-        .metadata(nft.metadata)
-        .master_edition(nft.edition)
-        .token(token_ata)
-        .token_owner(receiver)
-        .token_record(token_record)
-        .mint(nft.mint)
-        .authority(authority.pubkey())
-        .payer(payer.pubkey())
         .build(mint_args)
         .map_err(|e| anyhow!(e.to_string()))?
         .instruction();
@@ -145,7 +150,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
 
     Ok(MintResult {
         signature: sig,
-        mint: nft.mint,
+        mint: asset.mint,
     })
 }
 

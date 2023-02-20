@@ -12,7 +12,7 @@ use solana_sdk::{
     transaction::Transaction,
 };
 
-use crate::{data::Nft, decode::ToPubkey};
+use crate::{data::Asset, decode::ToPubkey};
 
 pub enum TransferAssetArgs<'a, P: ToPubkey> {
     V1 {
@@ -59,7 +59,7 @@ fn transfer_asset_v1<P: ToPubkey>(
     let destination_owner = destination_owner.to_pubkey()?;
     let destination_token = destination_token.to_pubkey()?;
 
-    let nft = Nft::new(mint);
+    let mut asset = Asset::new(mint);
     let payer = payer.unwrap_or(authority);
 
     let transfer_args = TransferArgs::V1 {
@@ -75,19 +75,18 @@ fn transfer_asset_v1<P: ToPubkey>(
         .token_owner(source_owner)
         .destination(destination_token)
         .destination_owner(destination_owner)
-        .mint(nft.mint)
-        .metadata(nft.metadata)
-        .edition(nft.edition);
+        .mint(asset.mint)
+        .metadata(asset.metadata);
 
-    let md = nft.get_metadata(client)?;
+    let md = asset.get_metadata(client)?;
 
     if matches!(
         md.token_standard,
         Some(TokenStandard::ProgrammableNonFungible)
     ) {
         // Always need the token records for pNFTs.
-        let source_token_record = nft.get_token_record(&source_token);
-        let destination_token_record = nft.get_token_record(&destination_token);
+        let source_token_record = asset.get_token_record(&source_token);
+        let destination_token_record = asset.get_token_record(&destination_token);
         transfer_builder
             .owner_token_record(source_token_record)
             .destination_token_record(destination_token_record);
@@ -100,6 +99,18 @@ fn transfer_asset_v1<P: ToPubkey>(
         {
             transfer_builder.authorization_rules(auth_rules);
         }
+    }
+
+    if matches!(
+        md.token_standard,
+        Some(
+            TokenStandard::NonFungible
+                | TokenStandard::NonFungibleEdition
+                | TokenStandard::ProgrammableNonFungible
+        )
+    ) {
+        asset.add_edition();
+        transfer_builder.edition(asset.edition.unwrap());
     }
 
     let transfer_ix = transfer_builder

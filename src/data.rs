@@ -10,23 +10,27 @@ use crate::{
     derive::{derive_edition_pda, derive_metadata_pda, derive_token_record_pda},
 };
 
-pub struct Nft {
+pub struct Asset {
     pub mint: Pubkey,
     pub metadata: Pubkey,
-    pub edition: Pubkey,
+    pub edition: Option<Pubkey>,
 }
 
-impl Nft {
+impl Asset {
     pub fn new(mint: Pubkey) -> Self {
         let metadata = derive_metadata_pda(&mint);
-        let edition = derive_edition_pda(&mint);
 
         Self {
             mint,
             metadata,
-            edition,
+            edition: None,
         }
     }
+
+    pub fn add_edition(&mut self) {
+        self.edition = Some(derive_edition_pda(&self.mint));
+    }
+
     pub fn get_token_record(&self, token: &Pubkey) -> Pubkey {
         derive_token_record_pda(&self.mint, token)
     }
