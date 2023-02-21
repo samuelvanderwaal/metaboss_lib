@@ -1,5 +1,8 @@
 use anyhow::{anyhow, Result};
-use mpl_token_metadata::instruction::{builders::UpdateBuilder, InstructionBuilder, UpdateArgs};
+use mpl_token_metadata::{
+    instruction::{builders::UpdateBuilder, InstructionBuilder, UpdateArgs},
+    state::TokenStandard,
+};
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
@@ -8,7 +11,7 @@ use solana_sdk::{
     transaction::Transaction,
 };
 
-use crate::{data::Nft, decode::ToPubkey};
+use crate::{data::Asset, decode::ToPubkey};
 
 pub enum UpdateAssetArgs<'a, P1, P2, P3, P4: ToPubkey> {
     V1 {
@@ -60,7 +63,9 @@ where
     let payer = payer.unwrap_or(authority);
 
     let mint = mint.to_pubkey()?;
-    let nft = Nft::new(mint);
+    let mut asset = Asset::new(mint);
+
+    let md = asset.get_metadata(client)?;
 
     let token = token.map(|t| t.to_pubkey()).transpose()?;
     let delegate_record = delegate_record.map(|t| t.to_pubkey()).transpose()?;
@@ -70,9 +75,20 @@ where
     update_builder
         .payer(payer.pubkey())
         .authority(authority.pubkey())
-        .mint(nft.mint)
-        .metadata(nft.metadata)
-        .edition(nft.edition);
+        .mint(asset.mint)
+        .metadata(asset.metadata);
+
+    if matches!(
+        md.token_standard,
+        Some(
+            TokenStandard::NonFungible
+                | TokenStandard::NonFungibleEdition
+                | TokenStandard::ProgrammableNonFungible
+        )
+    ) {
+        asset.add_edition();
+        update_builder.edition(asset.edition.unwrap());
+    }
 
     if let Some(token) = token {
         update_builder.token(token);
