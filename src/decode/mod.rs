@@ -1,7 +1,7 @@
 use mpl_token_metadata::state::{
     Edition, EditionMarker, MasterEditionV2, Metadata, TokenMetadataAccount,
 };
-use solana_client::rpc_client::RpcClient;
+use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_program::{bpf_loader_upgradeable::UpgradeableLoaderState, program_pack::Pack};
 use solana_sdk::{account_utils::StateMut, pubkey::Pubkey};
 use spl_token::state::{Account as Token, Mint};
@@ -33,17 +33,21 @@ impl ToPubkey for Pubkey {
     }
 }
 
-pub fn decode_metadata(client: &RpcClient, pubkey: &Pubkey) -> Result<Metadata, DecodeError> {
+pub async fn decode_metadata(client: &RpcClient, pubkey: &Pubkey) -> Result<Metadata, DecodeError> {
     let account_data = client
         .get_account_data(pubkey)
+        .await
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
     Metadata::safe_deserialize(&account_data)
         .map_err(|e| DecodeError::DecodeMetadataFailed(e.to_string()))
 }
 
-pub fn decode_master(client: &RpcClient, pubkey: &Pubkey) -> Result<MasterEditionV2, DecodeError> {
-    let account_data = match client.get_account_data(pubkey) {
+pub async fn decode_master(
+    client: &RpcClient,
+    pubkey: &Pubkey,
+) -> Result<MasterEditionV2, DecodeError> {
+    let account_data = match client.get_account_data(pubkey).await {
         Ok(data) => data,
         Err(err) => {
             return Err(DecodeError::ClientError(err.kind));
@@ -58,8 +62,8 @@ pub fn decode_master(client: &RpcClient, pubkey: &Pubkey) -> Result<MasterEditio
     Ok(master_edition)
 }
 
-pub fn decode_edition(client: &RpcClient, pubkey: &Pubkey) -> Result<Edition, DecodeError> {
-    let account_data = match client.get_account_data(pubkey) {
+pub async fn decode_edition(client: &RpcClient, pubkey: &Pubkey) -> Result<Edition, DecodeError> {
+    let account_data = match client.get_account_data(pubkey).await {
         Ok(data) => data,
         Err(err) => {
             return Err(DecodeError::ClientError(err.kind));
@@ -74,17 +78,17 @@ pub fn decode_edition(client: &RpcClient, pubkey: &Pubkey) -> Result<Edition, De
     Ok(edition)
 }
 
-pub fn decode_metadata_from_mint<P: ToPubkey>(
+pub async fn decode_metadata_from_mint<P: ToPubkey>(
     client: &RpcClient,
     mint_address: P,
 ) -> Result<Metadata, DecodeError> {
     let pubkey = mint_address.to_pubkey()?;
     let metadata_pda = derive_metadata_pda(&pubkey);
 
-    decode_metadata(client, &metadata_pda)
+    decode_metadata(client, &metadata_pda).await
 }
 
-pub fn decode_master_edition_from_mint<P: ToPubkey>(
+pub async fn decode_master_edition_from_mint<P: ToPubkey>(
     client: &RpcClient,
     mint_address: P,
 ) -> Result<MasterEditionV2, DecodeError> {
@@ -92,10 +96,10 @@ pub fn decode_master_edition_from_mint<P: ToPubkey>(
 
     let edition_pda = derive_edition_pda(&pubkey);
 
-    decode_master(client, &edition_pda)
+    decode_master(client, &edition_pda).await
 }
 
-pub fn decode_edition_from_mint<P: ToPubkey>(
+pub async fn decode_edition_from_mint<P: ToPubkey>(
     client: &RpcClient,
     mint_address: P,
 ) -> Result<Edition, DecodeError> {
@@ -103,13 +107,16 @@ pub fn decode_edition_from_mint<P: ToPubkey>(
 
     let edition_pda = derive_edition_pda(&pubkey);
 
-    decode_edition(client, &edition_pda)
+    decode_edition(client, &edition_pda).await
 }
 
-pub fn decode_mint<P: ToPubkey>(client: &RpcClient, mint_address: P) -> Result<Mint, DecodeError> {
+pub async fn decode_mint<P: ToPubkey>(
+    client: &RpcClient,
+    mint_address: P,
+) -> Result<Mint, DecodeError> {
     let pubkey = mint_address.to_pubkey()?;
 
-    let account = match client.get_account(&pubkey) {
+    let account = match client.get_account(&pubkey).await {
         Ok(account) => account,
         Err(err) => {
             return Err(DecodeError::ClientError(err.kind));
@@ -124,13 +131,13 @@ pub fn decode_mint<P: ToPubkey>(client: &RpcClient, mint_address: P) -> Result<M
     Ok(mint)
 }
 
-pub fn decode_token<P: ToPubkey>(
+pub async fn decode_token<P: ToPubkey>(
     client: &RpcClient,
     token_address: P,
 ) -> Result<Token, DecodeError> {
     let pubkey = token_address.to_pubkey()?;
 
-    let account_data = match client.get_account_data(&pubkey) {
+    let account_data = match client.get_account_data(&pubkey).await {
         Ok(data) => data,
         Err(err) => {
             return Err(DecodeError::ClientError(err.kind));
@@ -145,7 +152,7 @@ pub fn decode_token<P: ToPubkey>(
     Ok(token_account)
 }
 
-pub fn decode_edition_marker_from_mint<P: ToPubkey>(
+pub async fn decode_edition_marker_from_mint<P: ToPubkey>(
     client: &RpcClient,
     mint_address: P,
     edition_num: u64,
@@ -154,7 +161,7 @@ pub fn decode_edition_marker_from_mint<P: ToPubkey>(
 
     let edition_marker_pda = derive_edition_marker_pda(&pubkey, edition_num);
 
-    let account_data = match client.get_account_data(&edition_marker_pda) {
+    let account_data = match client.get_account_data(&edition_marker_pda).await {
         Ok(data) => data,
         Err(err) => {
             return Err(DecodeError::ClientError(err.kind));
@@ -169,7 +176,7 @@ pub fn decode_edition_marker_from_mint<P: ToPubkey>(
     Ok(edition_marker)
 }
 
-pub fn decode_bpf_loader_upgradeable_state<P: ToPubkey>(
+pub async fn decode_bpf_loader_upgradeable_state<P: ToPubkey>(
     client: &RpcClient,
     program_address: P,
 ) -> Result<UpgradeableLoaderState, DecodeError> {
@@ -177,6 +184,7 @@ pub fn decode_bpf_loader_upgradeable_state<P: ToPubkey>(
 
     let account = client
         .get_account(&pubkey)
+        .await
         .map_err(|err| DecodeError::ClientError(err.kind))?;
 
     let upgradeable_loader_state: UpgradeableLoaderState = account

@@ -7,30 +7,14 @@ on:
 name: Format and Compile Checks
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup
-        id: setup
-        shell: bash
-        run: |
-          echo "Installing libudev-dev"
-          sudo apt install libudev-dev
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-
   test:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
+      # Start local validator
+      - name: start-local-test-validator
+        working-directory: ../
+        run: amman start
       - name: Setup
         id: setup
         shell: bash

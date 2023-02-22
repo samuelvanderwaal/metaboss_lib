@@ -4,8 +4,7 @@ use mpl_token_metadata::{
     processor::AuthorizationData,
     state::{ProgrammableConfig, TokenStandard},
 };
-use retry::{delay::Exponential, retry};
-use solana_client::rpc_client::RpcClient;
+use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
@@ -28,18 +27,18 @@ pub enum TransferAssetArgs<'a, P: ToPubkey> {
     },
 }
 
-pub fn transfer_asset<P: ToPubkey>(
+pub async fn transfer_asset<P: ToPubkey>(
     client: &RpcClient,
-    args: TransferAssetArgs<P>,
+    args: TransferAssetArgs<'_, P>,
 ) -> Result<Signature> {
     match args {
-        TransferAssetArgs::V1 { .. } => transfer_asset_v1(client, args),
+        TransferAssetArgs::V1 { .. } => transfer_asset_v1(client, args).await,
     }
 }
 
-fn transfer_asset_v1<P: ToPubkey>(
+async fn transfer_asset_v1<P: ToPubkey>(
     client: &RpcClient,
-    args: TransferAssetArgs<P>,
+    args: TransferAssetArgs<'_, P>,
 ) -> Result<Signature> {
     let TransferAssetArgs::V1 {
         payer,
@@ -78,7 +77,7 @@ fn transfer_asset_v1<P: ToPubkey>(
         .mint(asset.mint)
         .metadata(asset.metadata);
 
-    let md = asset.get_metadata(client)?;
+    let md = asset.get_metadata(client).await?;
 
     if matches!(
         md.token_standard,
@@ -118,7 +117,7 @@ fn transfer_asset_v1<P: ToPubkey>(
         .map_err(|e| anyhow!(e.to_string()))?
         .instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
+    let recent_blockhash = client.get_latest_blockhash().await?;
     let tx = Transaction::new_signed_with_payer(
         &[transfer_ix],
         Some(&payer.pubkey()),
@@ -126,11 +125,7 @@ fn transfer_asset_v1<P: ToPubkey>(
         recent_blockhash,
     );
 
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
+    let sig = client.send_and_confirm_transaction(&tx).await?;
 
-    Ok(res?)
+    Ok(sig)
 }

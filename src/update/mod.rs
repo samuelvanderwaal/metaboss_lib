@@ -3,8 +3,7 @@ use mpl_token_metadata::{
     instruction::{builders::UpdateBuilder, InstructionBuilder, UpdateArgs},
     state::TokenStandard,
 };
-use retry::{delay::Exponential, retry};
-use solana_client::rpc_client::RpcClient;
+use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
@@ -25,9 +24,9 @@ pub enum UpdateAssetArgs<'a, P1, P2, P3, P4: ToPubkey> {
     },
 }
 
-pub fn update_asset<P1, P2, P3, P4>(
+pub async fn update_asset<P1, P2, P3, P4>(
     client: &RpcClient,
-    args: UpdateAssetArgs<P1, P2, P3, P4>,
+    args: UpdateAssetArgs<'_, P1, P2, P3, P4>,
 ) -> Result<Signature>
 where
     P1: ToPubkey,
@@ -36,13 +35,13 @@ where
     P4: ToPubkey,
 {
     match args {
-        UpdateAssetArgs::V1 { .. } => update_asset_v1(client, args),
+        UpdateAssetArgs::V1 { .. } => update_asset_v1(client, args).await,
     }
 }
 
-fn update_asset_v1<P1, P2, P3, P4>(
+async fn update_asset_v1<P1, P2, P3, P4>(
     client: &RpcClient,
-    args: UpdateAssetArgs<P1, P2, P3, P4>,
+    args: UpdateAssetArgs<'_, P1, P2, P3, P4>,
 ) -> Result<Signature>
 where
     P1: ToPubkey,
@@ -65,7 +64,7 @@ where
     let mint = mint.to_pubkey()?;
     let mut asset = Asset::new(mint);
 
-    let md = asset.get_metadata(client)?;
+    let md = asset.get_metadata(client).await?;
 
     let token = token.map(|t| t.to_pubkey()).transpose()?;
     let delegate_record = delegate_record.map(|t| t.to_pubkey()).transpose()?;
@@ -107,7 +106,7 @@ where
         .map_err(|e| anyhow!(e.to_string()))?
         .instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
+    let recent_blockhash = client.get_latest_blockhash().await?;
     let tx = Transaction::new_signed_with_payer(
         &[update_ix],
         Some(&payer.pubkey()),
@@ -115,11 +114,7 @@ where
         recent_blockhash,
     );
 
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
+    let sig = client.send_and_confirm_transaction(&tx).await?;
 
-    Ok(res?)
+    Ok(sig)
 }
