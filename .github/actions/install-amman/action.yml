@@ -10,7 +10,7 @@ runs:
       id: cache-amman-cli
       with:
         path: /home/runner/.cargo/bin/amman
-        key: amman-cli-${{ runner.os }}-v${{ env.AMMAN_VERSION }}
+        key: amman-cli-${{ runner.os }}
 
     - run: npm install @metaplex-foundation/amman
       shell: bash
