@@ -11,6 +11,7 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: Install Amman CLI
         uses: ./.github/actions/install-amman
         with:
