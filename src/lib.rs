@@ -1,3 +1,4 @@
+pub mod burn;
 pub mod constants;
 pub mod convert;
 pub mod data;
