@@ -11,9 +11,13 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
+      - name: Install Amman CLI
+        uses: ./.github/actions/install-amman
+        with:
+          amman-version: 0.12.1
       # Start local validator
       - name: start-local-test-validator
-        working-directory: ../
+        working-directory: /home/runner/
         run: amman start
       - name: Setup
         id: setup

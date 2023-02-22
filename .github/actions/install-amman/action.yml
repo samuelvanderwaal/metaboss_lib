@@ -1,0 +1,17 @@
+# if referencing from a workflow, SHANK_VERSION environment variable must be defined
+name: Setup Amman CLI
+description: 'Setup Amman CLI'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/cache@v3
+      name: Cache Amman CLI
+      id: cache-amman-cli
+      with:
+        path: /home/runner/.cargo/bin/amman
+        key: amman-cli-${{ runner.os }}-v${{ env.AMMAN_VERSION }}
+
+    - run: npm install @metaplex-foundation/amman@${{ env.AMMAN_VERSION }}
+      shell: bash
+      if: steps.cache-amman-cli.outputs.cache-hit != 'true'
