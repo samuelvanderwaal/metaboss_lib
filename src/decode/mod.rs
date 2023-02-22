@@ -1,5 +1,6 @@
 use mpl_token_metadata::state::{
-    Edition, EditionMarker, MasterEditionV2, Metadata, TokenMetadataAccount,
+    CollectionAuthorityRecord, Edition, EditionMarker, MasterEditionV2, Metadata,
+    MetadataDelegateRecord, TokenMetadataAccount, TokenRecord, UseAuthorityRecord,
 };
 use solana_client::rpc_client::RpcClient;
 use solana_program::{bpf_loader_upgradeable::UpgradeableLoaderState, program_pack::Pack};
@@ -184,4 +185,60 @@ pub fn decode_bpf_loader_upgradeable_state<P: ToPubkey>(
         .map_err(|err| DecodeError::DeserializationFailed(err.to_string()))?;
 
     Ok(upgradeable_loader_state)
+}
+
+pub fn decode_collection_authority_record<P: ToPubkey>(
+    client: &RpcClient,
+    address: P,
+) -> Result<CollectionAuthorityRecord, DecodeError> {
+    let pubkey = address.to_pubkey()?;
+
+    let account_data = client
+        .get_account_data(&pubkey)
+        .map_err(|e| DecodeError::ClientError(e.kind))?;
+
+    CollectionAuthorityRecord::safe_deserialize(&account_data)
+        .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
+}
+
+pub fn decode_use_authority_record<P: ToPubkey>(
+    client: &RpcClient,
+    address: P,
+) -> Result<UseAuthorityRecord, DecodeError> {
+    let pubkey = address.to_pubkey()?;
+
+    let account_data = client
+        .get_account_data(&pubkey)
+        .map_err(|e| DecodeError::ClientError(e.kind))?;
+
+    UseAuthorityRecord::safe_deserialize(&account_data)
+        .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
+}
+
+pub fn decode_metadata_delegate<P: ToPubkey>(
+    client: &RpcClient,
+    address: P,
+) -> Result<MetadataDelegateRecord, DecodeError> {
+    let pubkey = address.to_pubkey()?;
+
+    let account_data = client
+        .get_account_data(&pubkey)
+        .map_err(|e| DecodeError::ClientError(e.kind))?;
+
+    MetadataDelegateRecord::safe_deserialize(&account_data)
+        .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
+}
+
+pub fn decode_token_record<P: ToPubkey>(
+    client: &RpcClient,
+    address: P,
+) -> Result<TokenRecord, DecodeError> {
+    let pubkey = address.to_pubkey()?;
+
+    let account_data = client
+        .get_account_data(&pubkey)
+        .map_err(|e| DecodeError::ClientError(e.kind))?;
+
+    TokenRecord::safe_deserialize(&account_data)
+        .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
