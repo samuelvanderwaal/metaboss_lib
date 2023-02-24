@@ -1,0 +1,20 @@
+    {
+        "name": "Studious Crab #1",
+        "symbol": "CRAB",
+        "uri": "https://arweave.net/uVtABL4PYv0wVke3LL4DLMkqkSMcQl1qswRZNkJ0a0g",
+        "seller_fee_basis_points": 100,
+        "creators": [
+            {
+                "address": "ccc9XfyEMh9sU6DRkUmqQGJqgdKb6QyUaaT5h5BGYw4",
+                "verified": false,
+                "share": 100
+            }
+        ],
+        "primary_sale_happened": false,
+        "is_mutable": true,
+        "token_standard": "ProgrammableNonFungible",
+        "collection": null,
+        "uses": null,
+        "collection_details": null,
+        "rule_set": "1CfDY5sYBnspaXvjnN3y9WRdaoD5v3HXrZDrWhjZZTN"
+    }

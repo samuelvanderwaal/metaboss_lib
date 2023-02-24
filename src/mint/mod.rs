@@ -9,8 +9,7 @@ use mpl_token_metadata::{
     processor::AuthorizationData,
     state::{AssetData, PrintSupply, TokenStandard},
 };
-use retry::{delay::Exponential, retry};
-use solana_client::rpc_client::RpcClient;
+use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
     pubkey::Pubkey,
     signature::Signature,
@@ -51,13 +50,19 @@ pub struct MintResult {
     pub mint: Pubkey,
 }
 
-pub fn mint_asset<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Result<MintResult> {
+pub async fn mint_asset<P: ToPubkey>(
+    client: &RpcClient,
+    args: MintAssetArgs<'_, P>,
+) -> Result<MintResult> {
     match args {
-        MintAssetArgs::V1 { .. } => mint_asset_v1(client, args),
+        MintAssetArgs::V1 { .. } => mint_asset_v1(client, args).await,
     }
 }
 
-fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Result<MintResult> {
+async fn mint_asset_v1<P: ToPubkey>(
+    client: &RpcClient,
+    args: MintAssetArgs<'_, P>,
+) -> Result<MintResult> {
     let MintAssetArgs::V1 {
         payer,
         authority,
@@ -139,7 +144,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         .map_err(|e| anyhow!(e.to_string()))?
         .instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
+    let recent_blockhash = client.get_latest_blockhash().await?;
     let tx = Transaction::new_signed_with_payer(
         &[create_ix, mint_ix],
         Some(&payer.pubkey()),
@@ -148,11 +153,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
     );
 
     // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-    let sig = res?;
+    let sig = client.send_and_confirm_transaction(&tx).await?;
 
     Ok(MintResult {
         signature: sig,
@@ -160,7 +161,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
     })
 }
 
-pub fn mint(
+pub async fn mint(
     client: &RpcClient,
     funder: Keypair,
     receiver: Pubkey,
@@ -175,7 +176,9 @@ pub fn mint(
     let data = convert_local_to_remote_data(nft_data)?;
 
     // Allocate memory for the account
-    let min_rent = client.get_minimum_balance_for_rent_exemption(MINT_LAYOUT_SIZE as usize)?;
+    let min_rent = client
+        .get_minimum_balance_for_rent_exemption(MINT_LAYOUT_SIZE as usize)
+        .await?;
 
     // Create mint account
     let create_mint_account_ix = create_account(
@@ -287,7 +290,7 @@ pub fn mint(
         instructions.push(ix);
     }
 
-    let recent_blockhash = client.get_latest_blockhash()?;
+    let recent_blockhash = client.get_latest_blockhash().await?;
     let tx = Transaction::new_signed_with_payer(
         &instructions,
         Some(&funder.pubkey()),
@@ -296,11 +299,7 @@ pub fn mint(
     );
 
     // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-    let sig = res?;
+    let sig = client.send_and_confirm_transaction(&tx).await?;
 
     Ok((sig, mint.pubkey()))
 }
