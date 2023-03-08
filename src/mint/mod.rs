@@ -77,6 +77,12 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
 
     let token_standard = asset_data.token_standard;
 
+    if let Some(decimals) = mint_decimals {
+        if decimals > 9 {
+            bail!("Decimals must be less than or equal to 9");
+        }
+    }
+
     let create_args = CreateArgs::V1 {
         asset_data,
         decimals: mint_decimals,
@@ -128,7 +134,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         authorization_data,
     };
 
-    let mint_ix = MintBuilder::new()
+    let mint_ix = mint_builder
         .build(mint_args)
         .map_err(|e| anyhow!(e.to_string()))?
         .instruction();
