@@ -12,7 +12,7 @@ use solana_sdk::{
     transaction::Transaction,
 };
 
-use crate::{data::Asset, decode::ToPubkey};
+use crate::{data::Asset, decode::ToPubkey, derive::derive_metadata_pda};
 
 pub enum BurnAssetArgs<'a, P1, P2: ToPubkey> {
     V1 {
@@ -75,6 +75,14 @@ where
         if let Some(TokenStandard::ProgrammableNonFungible) = md.token_standard {
             let (token_record, _) = find_token_record_account(&mint, &token);
             burn_builder.token_record(token_record);
+        }
+    }
+
+    // If it's a verified member of a collection, we need to pass in the collection parent.
+    if let Some(collection) = md.collection {
+        if collection.verified {
+            let collection_metadata = derive_metadata_pda(&collection.key);
+            burn_builder.collection_metadata(collection_metadata);
         }
     }
 
