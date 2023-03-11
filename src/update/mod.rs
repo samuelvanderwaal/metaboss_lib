@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use mpl_token_metadata::{
     instruction::{builders::UpdateBuilder, InstructionBuilder, UpdateArgs},
     state::TokenStandard,
@@ -77,6 +77,10 @@ where
         .authority(authority.pubkey())
         .mint(asset.mint)
         .metadata(asset.metadata);
+
+    if md.token_standard.is_none() {
+        bail!("Token standard not set for mint {}", asset.mint);
+    }
 
     if matches!(
         md.token_standard,
