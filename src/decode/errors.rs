@@ -20,4 +20,7 @@ pub enum DecodeError {
 
     #[error("failed to deserialize account data: {0}")]
     DeserializationFailed(String),
+
+    #[error("General error: {0}")]
+    GeneralError(String),
 }
