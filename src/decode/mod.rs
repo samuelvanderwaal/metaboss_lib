@@ -9,7 +9,7 @@ use spl_token::state::{Account as Token, Mint};
 use std::str::FromStr;
 
 pub mod errors;
-use crate::derive::*;
+use crate::{derive::*, nft::get_nft_token_account};
 use errors::DecodeError;
 
 pub trait ToPubkey {
@@ -237,6 +237,25 @@ pub fn decode_token_record<P: ToPubkey>(
 
     let account_data = client
         .get_account_data(&pubkey)
+        .map_err(|e| DecodeError::ClientError(e.kind))?;
+
+    TokenRecord::safe_deserialize(&account_data)
+        .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
+}
+
+pub fn decode_token_record_from_mint<P: ToPubkey>(
+    client: &RpcClient,
+    address: P,
+) -> Result<TokenRecord, DecodeError> {
+    let mint_pubkey = address.to_pubkey()?;
+
+    let token_pubkey = get_nft_token_account(client, &mint_pubkey.to_string())
+        .map_err(|e| DecodeError::GeneralError(e.to_string()))?;
+
+    let token_record_pda = derive_token_record_pda(&mint_pubkey, &token_pubkey);
+
+    let account_data = client
+        .get_account_data(&token_record_pda)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
     TokenRecord::safe_deserialize(&account_data)
