@@ -65,7 +65,7 @@ where
             TokenStandard::NonFungible
                 | TokenStandard::NonFungibleEdition
                 | TokenStandard::ProgrammableNonFungible
-        )
+        ) | None
     ) {
         // NonFungible types need an edition
         asset.add_edition();

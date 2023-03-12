@@ -107,7 +107,7 @@ fn transfer_asset_v1<P: ToPubkey>(
             TokenStandard::NonFungible
                 | TokenStandard::NonFungibleEdition
                 | TokenStandard::ProgrammableNonFungible
-        )
+        ) | None
     ) {
         asset.add_edition();
         transfer_builder.edition(asset.edition.unwrap());

@@ -78,13 +78,16 @@ where
         .mint(asset.mint)
         .metadata(asset.metadata);
 
+    // Fungibles without a token standard will fail when an edition is passed in, but
+    // assets in this call are much more likely to be NonFungible so we assume that and
+    // let Token Metadata and God sort it out.
     if matches!(
         md.token_standard,
         Some(
             TokenStandard::NonFungible
                 | TokenStandard::NonFungibleEdition
                 | TokenStandard::ProgrammableNonFungible
-        )
+        ) | None
     ) {
         asset.add_edition();
         update_builder.edition(asset.edition.unwrap());
