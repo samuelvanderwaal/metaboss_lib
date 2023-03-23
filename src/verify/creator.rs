@@ -1,4 +1,3 @@
-
 use super::*;
 
 pub enum VerifyCreatorArgs<'a, P1: ToPubkey> {
