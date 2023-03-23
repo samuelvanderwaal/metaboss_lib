@@ -1,3 +1,5 @@
+use solana_program::instruction::Instruction;
+
 use super::*;
 
 pub enum VerifyCollectionArgs<'a, P1: ToPubkey, P2: ToPubkey> {
@@ -22,10 +24,52 @@ where
     }
 }
 
+pub fn verify_collection_ix<P1, P2>(
+    client: &RpcClient,
+    args: VerifyCollectionArgs<P1, P2>,
+) -> Result<Instruction>
+where
+    P1: ToPubkey,
+    P2: ToPubkey,
+{
+    match args {
+        VerifyCollectionArgs::V1 { .. } => verify_collection_v1_ix(client, args),
+    }
+}
+
 fn verify_collection_v1<P1, P2>(
     client: &RpcClient,
     args: VerifyCollectionArgs<P1, P2>,
 ) -> Result<Signature>
+where
+    P1: ToPubkey,
+    P2: ToPubkey,
+{
+    let VerifyCollectionArgs::V1 { authority, .. } = args;
+
+    let verify_ix = verify_collection_v1_ix(client, args)?;
+
+    let recent_blockhash = client.get_latest_blockhash()?;
+    let tx = Transaction::new_signed_with_payer(
+        &[verify_ix],
+        Some(&authority.pubkey()),
+        &[authority],
+        recent_blockhash,
+    );
+
+    // Send tx with retries.
+    let res = retry(
+        Exponential::from_millis_with_factor(250, 2.0).take(3),
+        || client.send_and_confirm_transaction(&tx),
+    );
+
+    Ok(res?)
+}
+
+fn verify_collection_v1_ix<P1, P2>(
+    client: &RpcClient,
+    args: VerifyCollectionArgs<P1, P2>,
+) -> Result<Instruction>
 where
     P1: ToPubkey,
     P2: ToPubkey,
@@ -77,19 +121,5 @@ where
         .map_err(|e| anyhow!(e.to_string()))?
         .instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[verify_ix],
-        Some(&authority.pubkey()),
-        &[authority],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-
-    Ok(res?)
+    Ok(verify_ix)
 }

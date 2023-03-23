@@ -8,5 +8,6 @@ pub mod mint;
 pub mod nft;
 pub mod snapshot;
 pub mod transfer;
+pub mod unverify;
 pub mod update;
 pub mod verify;

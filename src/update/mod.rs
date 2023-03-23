@@ -5,6 +5,7 @@ use mpl_token_metadata::{
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
+use solana_program::instruction::Instruction;
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
@@ -40,10 +41,60 @@ where
     }
 }
 
+pub fn update_asset_ix<P1, P2, P3, P4>(
+    client: &RpcClient,
+    args: UpdateAssetArgs<P1, P2, P3, P4>,
+) -> Result<Instruction>
+where
+    P1: ToPubkey,
+    P2: ToPubkey,
+    P3: ToPubkey,
+    P4: ToPubkey,
+{
+    match args {
+        UpdateAssetArgs::V1 { .. } => update_asset_v1_ix(client, args),
+    }
+}
+
 fn update_asset_v1<P1, P2, P3, P4>(
     client: &RpcClient,
     args: UpdateAssetArgs<P1, P2, P3, P4>,
 ) -> Result<Signature>
+where
+    P1: ToPubkey,
+    P2: ToPubkey,
+    P3: ToPubkey,
+    P4: ToPubkey,
+{
+    let UpdateAssetArgs::V1 {
+        payer, authority, ..
+    } = args;
+
+    let payer = payer.unwrap_or(authority);
+
+    let update_ix = update_asset_v1_ix(client, args)?;
+
+    let recent_blockhash = client.get_latest_blockhash()?;
+    let tx = Transaction::new_signed_with_payer(
+        &[update_ix],
+        Some(&payer.pubkey()),
+        &[payer, authority],
+        recent_blockhash,
+    );
+
+    // Send tx with retries.
+    let res = retry(
+        Exponential::from_millis_with_factor(250, 2.0).take(3),
+        || client.send_and_confirm_transaction(&tx),
+    );
+
+    Ok(res?)
+}
+
+fn update_asset_v1_ix<P1, P2, P3, P4>(
+    client: &RpcClient,
+    args: UpdateAssetArgs<P1, P2, P3, P4>,
+) -> Result<Instruction>
 where
     P1: ToPubkey,
     P2: ToPubkey,
@@ -110,19 +161,5 @@ where
         .map_err(|e| anyhow!(e.to_string()))?
         .instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[update_ix],
-        Some(&payer.pubkey()),
-        &[payer, authority],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-
-    Ok(res?)
+    Ok(update_ix)
 }
