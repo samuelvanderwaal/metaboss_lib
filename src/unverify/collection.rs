@@ -48,11 +48,11 @@ where
 {
     let UnverifyCollectionArgs::V1 { authority, .. } = args;
 
-    let verify_ix = unverify_collection_v1_ix(client, args)?;
+    let unverify_ix = unverify_collection_v1_ix(client, args)?;
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(
-        &[verify_ix],
+        &[unverify_ix],
         Some(&authority.pubkey()),
         &[authority],
         recent_blockhash,

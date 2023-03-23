@@ -1,8 +1,6 @@
 use anyhow::{anyhow, bail, Result};
 use mpl_token_metadata::{
-    instruction::{
-        builders::VerifyBuilder, InstructionBuilder, MetadataDelegateRole, VerificationArgs,
-    },
+    instruction::{InstructionBuilder, MetadataDelegateRole, VerificationArgs},
     pda::find_metadata_delegate_record_account,
     state::TokenStandard,
 };
