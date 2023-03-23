@@ -9,3 +9,4 @@ pub mod nft;
 pub mod snapshot;
 pub mod transfer;
 pub mod update;
+pub mod verify;

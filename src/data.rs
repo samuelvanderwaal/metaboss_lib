@@ -35,7 +35,7 @@ impl Asset {
         derive_token_record_pda(&self.mint, token)
     }
 
-    pub(crate) fn get_metadata(&self, client: &RpcClient) -> Result<Metadata, DecodeError> {
+    pub fn get_metadata(&self, client: &RpcClient) -> Result<Metadata, DecodeError> {
         decode_metadata(client, &self.metadata)
     }
 
