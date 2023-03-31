@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use mpl_token_metadata::{
     instruction::{builders::UpdateBuilder, InstructionBuilder, UpdateArgs},
-    state::TokenStandard,
+    state::{ProgrammableConfig, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
@@ -12,59 +12,55 @@ use solana_sdk::{
     transaction::Transaction,
 };
 
-use crate::{data::Asset, decode::ToPubkey};
+use crate::{data::Asset, decode::ToPubkey, nft::get_nft_token_account};
 
-pub enum UpdateAssetArgs<'a, P1, P2, P3, P4: ToPubkey> {
+pub enum UpdateAssetArgs<'a, P1, P2, P3: ToPubkey> {
     V1 {
         payer: Option<&'a Keypair>,
         authority: &'a Keypair,
         mint: P1,
         token: Option<P2>,
         delegate_record: Option<P3>,
-        current_rule_set: Option<P4>,
         update_args: UpdateArgs,
     },
 }
 
-pub fn update_asset<P1, P2, P3, P4>(
+pub fn update_asset<P1, P2, P3>(
     client: &RpcClient,
-    args: UpdateAssetArgs<P1, P2, P3, P4>,
+    args: UpdateAssetArgs<P1, P2, P3>,
 ) -> Result<Signature>
 where
     P1: ToPubkey,
     P2: ToPubkey,
     P3: ToPubkey,
-    P4: ToPubkey,
 {
     match args {
         UpdateAssetArgs::V1 { .. } => update_asset_v1(client, args),
     }
 }
 
-pub fn update_asset_ix<P1, P2, P3, P4>(
+pub fn update_asset_ix<P1, P2, P3>(
     client: &RpcClient,
-    args: UpdateAssetArgs<P1, P2, P3, P4>,
+    args: UpdateAssetArgs<P1, P2, P3>,
 ) -> Result<Instruction>
 where
     P1: ToPubkey,
     P2: ToPubkey,
     P3: ToPubkey,
-    P4: ToPubkey,
 {
     match args {
         UpdateAssetArgs::V1 { .. } => update_asset_v1_ix(client, args),
     }
 }
 
-fn update_asset_v1<P1, P2, P3, P4>(
+fn update_asset_v1<P1, P2, P3>(
     client: &RpcClient,
-    args: UpdateAssetArgs<P1, P2, P3, P4>,
+    args: UpdateAssetArgs<P1, P2, P3>,
 ) -> Result<Signature>
 where
     P1: ToPubkey,
     P2: ToPubkey,
     P3: ToPubkey,
-    P4: ToPubkey,
 {
     let UpdateAssetArgs::V1 {
         payer, authority, ..
@@ -91,15 +87,14 @@ where
     Ok(res?)
 }
 
-fn update_asset_v1_ix<P1, P2, P3, P4>(
+fn update_asset_v1_ix<P1, P2, P3>(
     client: &RpcClient,
-    args: UpdateAssetArgs<P1, P2, P3, P4>,
+    args: UpdateAssetArgs<P1, P2, P3>,
 ) -> Result<Instruction>
 where
     P1: ToPubkey,
     P2: ToPubkey,
     P3: ToPubkey,
-    P4: ToPubkey,
 {
     let UpdateAssetArgs::V1 {
         payer,
@@ -107,7 +102,6 @@ where
         mint,
         token,
         delegate_record,
-        current_rule_set,
         update_args,
     } = args;
 
@@ -120,7 +114,14 @@ where
 
     let token = token.map(|t| t.to_pubkey()).transpose()?;
     let delegate_record = delegate_record.map(|t| t.to_pubkey()).transpose()?;
-    let rule_set = current_rule_set.map(|t| t.to_pubkey()).transpose()?;
+
+    // We need the token account passed in for pNFT updates.
+    let token =
+        if md.token_standard == Some(TokenStandard::ProgrammableNonFungible) && token.is_none() {
+            Some(get_nft_token_account(client, &mint.to_string())?)
+        } else {
+            None
+        };
 
     let mut update_builder = UpdateBuilder::new();
     update_builder
@@ -152,7 +153,10 @@ where
         update_builder.delegate_record(delegate_record);
     }
 
-    if let Some(rule_set) = rule_set {
+    if let Some(ProgrammableConfig::V1 {
+        rule_set: Some(rule_set),
+    }) = md.programmable_config
+    {
         update_builder.authorization_rules(rule_set);
     }
 
