@@ -97,6 +97,7 @@ fn transfer_asset_v1<P: ToPubkey>(
             rule_set: Some(auth_rules),
         }) = md.programmable_config
         {
+            transfer_builder.authorization_rules_program(mpl_token_auth_rules::ID);
             transfer_builder.authorization_rules(auth_rules);
         }
     }
