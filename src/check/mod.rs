@@ -108,7 +108,7 @@ impl Display for MetadataValue {
     }
 }
 
-pub fn check_metadata_value(metadata: Metadata, value: &MetadataValue) -> bool {
+pub fn check_metadata_value(metadata: &Metadata, value: &MetadataValue) -> bool {
     match value {
         MetadataValue::Name(name) => name == metadata.data.name.trim_matches(char::from(0)),
         MetadataValue::Symbol(symbol) => symbol == metadata.data.symbol.trim_matches(char::from(0)),
@@ -133,21 +133,21 @@ pub fn check_metadata_value(metadata: Metadata, value: &MetadataValue) -> bool {
             }
         }
         MetadataValue::CollectionParent(collection_parent) => {
-            if let Some(collection) = metadata.collection {
+            if let Some(collection) = &metadata.collection {
                 collection_parent == &collection.key.to_string()
             } else {
                 false
             }
         }
         MetadataValue::CollectionVerified(collection_verified) => {
-            if let Some(collection) = metadata.collection {
+            if let Some(collection) = &metadata.collection {
                 collection_verified == &collection.verified
             } else {
                 false
             }
         }
         MetadataValue::RuleSet(expected_rule_set) => {
-            if let Some(config) = metadata.programmable_config {
+            if let Some(config) = &metadata.programmable_config {
                 match config {
                     ProgrammableConfig::V1 { rule_set } => {
                         if let Some(pubkey) = rule_set {
