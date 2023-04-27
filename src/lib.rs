@@ -4,6 +4,7 @@ pub mod constants;
 pub mod convert;
 pub mod data;
 pub mod decode;
+pub mod delegate;
 pub mod derive;
 pub mod mint;
 pub mod nft;
