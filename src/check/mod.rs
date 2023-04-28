@@ -110,7 +110,11 @@ impl Display for MetadataValue {
 
 pub fn check_metadata_value(metadata: &Metadata, value: &MetadataValue) -> bool {
     match value {
-        MetadataValue::Name(name) => name == metadata.data.name.trim_matches(char::from(0)),
+        MetadataValue::Name(name) => metadata
+            .data
+            .name
+            .trim_matches(char::from(0))
+            .contains(name),
         MetadataValue::Symbol(symbol) => symbol == metadata.data.symbol.trim_matches(char::from(0)),
 
         MetadataValue::Uri(uri) => uri == metadata.data.uri.trim_matches(char::from(0)),
