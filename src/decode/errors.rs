@@ -23,4 +23,10 @@ pub enum DecodeError {
 
     #[error("General error: {0}")]
     GeneralError(String),
+
+    #[error("RuleSet revision not available")]
+    RuleSetRevisionNotAvailable,
+
+    #[error("Numerical overflow")]
+    NumericalOverflow,
 }
