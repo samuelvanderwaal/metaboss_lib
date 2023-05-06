@@ -134,15 +134,6 @@ where
         .spl_token_program(spl_token::ID);
 
     match revoke_args {
-        RevokeArgs::CollectionV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
-                &mint,
-                MetadataDelegateRole::Collection,
-                &payer.pubkey(),
-                &delegate,
-            );
-            revoke_builder.delegate_record(delegate_record);
-        }
         RevokeArgs::SaleV1 { .. }
         | RevokeArgs::TransferV1 { .. }
         | RevokeArgs::UtilityV1 { .. }
@@ -153,10 +144,46 @@ where
             let (token_record, _) = find_token_record_account(&mint, &token);
             revoke_builder.token_record(token_record);
         }
-        RevokeArgs::UpdateV1 { .. } => {
+        RevokeArgs::AuthorityItemV1 { .. } => {
             let (delegate_record, _) = find_metadata_delegate_record_account(
                 &mint,
-                MetadataDelegateRole::Update,
+                MetadataDelegateRole::AuthorityItem,
+                &payer.pubkey(),
+                &delegate,
+            );
+            revoke_builder.delegate_record(delegate_record);
+        }
+        RevokeArgs::DataV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::Data,
+                &payer.pubkey(),
+                &delegate,
+            );
+            revoke_builder.delegate_record(delegate_record);
+        }
+        RevokeArgs::DataItemV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::DataItem,
+                &payer.pubkey(),
+                &delegate,
+            );
+            revoke_builder.delegate_record(delegate_record);
+        }
+        RevokeArgs::CollectionV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::Collection,
+                &payer.pubkey(),
+                &delegate,
+            );
+            revoke_builder.delegate_record(delegate_record);
+        }
+        RevokeArgs::CollectionItemV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::CollectionItem,
                 &payer.pubkey(),
                 &delegate,
             );
@@ -166,6 +193,15 @@ where
             let (delegate_record, _) = find_metadata_delegate_record_account(
                 &mint,
                 MetadataDelegateRole::ProgrammableConfig,
+                &payer.pubkey(),
+                &delegate,
+            );
+            revoke_builder.delegate_record(delegate_record);
+        }
+        RevokeArgs::ProgrammableConfigItemV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::ProgrammableConfigItem,
                 &payer.pubkey(),
                 &delegate,
             );
