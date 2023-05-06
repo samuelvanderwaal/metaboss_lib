@@ -1,4 +1,4 @@
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::BorshDeserialize;
 use mpl_token_auth_rules::{
     error::RuleSetError,
     state::{
@@ -48,9 +48,7 @@ pub fn decode_rule_set(
         }
     };
 
-    let start = start
-        .checked_add(1 as usize)
-        .ok_or(DecodeError::NumericalOverflow)?;
+    let start = start.checked_add(1).ok_or(DecodeError::NumericalOverflow)?;
 
     let data = &account_data[start..end];
 
