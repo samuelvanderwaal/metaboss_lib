@@ -136,15 +136,7 @@ where
         .spl_token_program(spl_token::ID);
 
     match delegate_args {
-        DelegateArgs::CollectionV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
-                &mint,
-                MetadataDelegateRole::Collection,
-                &payer.pubkey(),
-                &delegate,
-            );
-            delegate_builder.delegate_record(delegate_record);
-        }
+        // pNFT Delegates
         DelegateArgs::SaleV1 { .. }
         | DelegateArgs::TransferV1 { .. }
         | DelegateArgs::UtilityV1 { .. }
@@ -154,10 +146,47 @@ where
             let (token_record, _) = find_token_record_account(&mint, &token);
             delegate_builder.token_record(token_record);
         }
-        DelegateArgs::UpdateV1 { .. } => {
+        // Metadata Delegates
+        DelegateArgs::AuthorityItemV1 { .. } => {
             let (delegate_record, _) = find_metadata_delegate_record_account(
                 &mint,
-                MetadataDelegateRole::Update,
+                MetadataDelegateRole::AuthorityItem,
+                &payer.pubkey(),
+                &delegate,
+            );
+            delegate_builder.delegate_record(delegate_record);
+        }
+        DelegateArgs::DataV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::Data,
+                &payer.pubkey(),
+                &delegate,
+            );
+            delegate_builder.delegate_record(delegate_record);
+        }
+        DelegateArgs::DataItemV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::DataItem,
+                &payer.pubkey(),
+                &delegate,
+            );
+            delegate_builder.delegate_record(delegate_record);
+        }
+        DelegateArgs::CollectionV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::Collection,
+                &payer.pubkey(),
+                &delegate,
+            );
+            delegate_builder.delegate_record(delegate_record);
+        }
+        DelegateArgs::CollectionItemV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::CollectionItem,
                 &payer.pubkey(),
                 &delegate,
             );
@@ -167,6 +196,15 @@ where
             let (delegate_record, _) = find_metadata_delegate_record_account(
                 &mint,
                 MetadataDelegateRole::ProgrammableConfig,
+                &payer.pubkey(),
+                &delegate,
+            );
+            delegate_builder.delegate_record(delegate_record);
+        }
+        DelegateArgs::ProgrammableConfigItemV1 { .. } => {
+            let (delegate_record, _) = find_metadata_delegate_record_account(
+                &mint,
+                MetadataDelegateRole::ProgrammableConfigItem,
                 &payer.pubkey(),
                 &delegate,
             );
