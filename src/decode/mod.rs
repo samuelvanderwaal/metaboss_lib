@@ -158,7 +158,14 @@ pub fn decode_edition_marker_from_mint<P: ToPubkey>(
 
     let edition_marker_pda = derive_edition_marker_pda(&pubkey, edition_num);
 
-    let account_data = match client.get_account_data(&edition_marker_pda) {
+    decode_edition_marker::<P>(client, &edition_marker_pda)
+}
+
+pub fn decode_edition_marker<P: ToPubkey>(
+    client: &RpcClient,
+    pubkey: &Pubkey,
+) -> Result<EditionMarker, DecodeError> {
+    let account_data = match client.get_account_data(pubkey) {
         Ok(data) => data,
         Err(err) => {
             return Err(DecodeError::ClientError(err.kind));
