@@ -90,13 +90,6 @@ where
 
     let md = asset.get_metadata(client)?;
 
-    if !matches!(
-        md.token_standard,
-        Some(TokenStandard::NonFungible | TokenStandard::ProgrammableNonFungible) | None
-    ) {
-        bail!("This feature only supports NFTs or pNFTs verified");
-    }
-
     collection_asset.add_edition();
 
     let mut unverify_builder = UnverifyBuilder::new();
