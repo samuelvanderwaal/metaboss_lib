@@ -175,5 +175,8 @@ fn token_standard_to_string(token_standard: &TokenStandard) -> String {
         TokenStandard::NonFungible => "nonfungible".to_string(),
         TokenStandard::NonFungibleEdition => "nonfungible_edition".to_string(),
         TokenStandard::ProgrammableNonFungible => "programmable_nonfungible".to_string(),
+        TokenStandard::ProgrammableNonFungibleEdition => {
+            "programmable_nonfungible_edition".to_string()
+        }
     }
 }
