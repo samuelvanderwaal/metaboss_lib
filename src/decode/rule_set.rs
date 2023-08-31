@@ -1,4 +1,4 @@
-use borsh::BorshDeserialize;
+use borsh::de::BorshDeserialize;
 use mpl_token_auth_rules::{
     error::RuleSetError,
     state::{
