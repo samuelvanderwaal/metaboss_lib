@@ -1,10 +1,9 @@
 use anyhow::{anyhow, Result};
 use mpl_token_metadata::{
-    instruction::{
-        builders::DelegateBuilder, DelegateArgs, InstructionBuilder, MetadataDelegateRole,
-    },
-    pda::{find_metadata_delegate_record_account, find_token_record_account},
-    state::TokenStandard,
+    accounts::{MetadataDelegateRecord, TokenRecord},
+    hooked::MetadataDelegateRoleSeed,
+    instructions::DelegateStandardV1Builder,
+    types::{DelegateArgs, MetadataDelegateRole, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
@@ -126,85 +125,85 @@ where
             None
         };
 
-    let mut delegate_builder = DelegateBuilder::new();
+    let mut delegate_builder = DelegateStandardV1Builder::new();
     delegate_builder
         .delegate(delegate)
         .mint(mint)
         .metadata(asset.metadata)
         .payer(payer.pubkey())
-        .authority(authority.pubkey())
-        .spl_token_program(spl_token::ID);
+        .authority(authority.pubkey());
 
     match delegate_args {
         // pNFT Delegates
-        DelegateArgs::SaleV1 { .. }
-        | DelegateArgs::TransferV1 { .. }
-        | DelegateArgs::UtilityV1 { .. }
-        | DelegateArgs::StakingV1 { .. }
-        | DelegateArgs::LockedTransferV1 { .. } => {
+        DelegateArgs::SaleV1 { amount, .. }
+        | DelegateArgs::TransferV1 { amount, .. }
+        | DelegateArgs::UtilityV1 { amount, .. }
+        | DelegateArgs::StakingV1 { amount, .. }
+        | DelegateArgs::LockedTransferV1 { amount, .. } => {
             let token = token.ok_or(anyhow!("Missing required token account"))?;
-            let (token_record, _) = find_token_record_account(&mint, &token);
+            let (token_record, _) = TokenRecord::find_pda(&mint, &token);
             delegate_builder.token_record(token_record);
+            delegate_builder.amount(amount);
         }
         // Metadata Delegates
         DelegateArgs::AuthorityItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::AuthorityItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::AuthorityItem),
                 &payer.pubkey(),
                 &delegate,
             );
             delegate_builder.delegate_record(delegate_record);
         }
         DelegateArgs::DataV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::Data,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::Data),
                 &payer.pubkey(),
                 &delegate,
             );
             delegate_builder.delegate_record(delegate_record);
         }
         DelegateArgs::DataItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::DataItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::DataItem),
                 &payer.pubkey(),
                 &delegate,
             );
             delegate_builder.delegate_record(delegate_record);
         }
         DelegateArgs::CollectionV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::Collection,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::Collection),
                 &payer.pubkey(),
                 &delegate,
             );
             delegate_builder.delegate_record(delegate_record);
         }
         DelegateArgs::CollectionItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::CollectionItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::CollectionItem),
                 &payer.pubkey(),
                 &delegate,
             );
             delegate_builder.delegate_record(delegate_record);
         }
         DelegateArgs::ProgrammableConfigV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::ProgrammableConfig,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::ProgrammableConfig),
                 &payer.pubkey(),
                 &delegate,
             );
             delegate_builder.delegate_record(delegate_record);
         }
         DelegateArgs::ProgrammableConfigItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::ProgrammableConfigItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::ProgrammableConfigItem),
                 &payer.pubkey(),
                 &delegate,
             );
@@ -228,10 +227,7 @@ where
         delegate_builder.master_edition(asset.edition.unwrap());
     }
 
-    let delegate_ix = delegate_builder
-        .build(delegate_args)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    let delegate_ix = delegate_builder.build();
 
     Ok(delegate_ix)
 }

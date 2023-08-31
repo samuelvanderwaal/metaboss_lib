@@ -24,7 +24,7 @@ where
 
     let md = asset.get_metadata(client)?;
 
-    let mut verify_builder = VerifyBuilder::new();
+    let mut verify_builder = VerifyCreatorV1Builder::new();
     verify_builder
         .authority(authority.pubkey())
         .metadata(asset.metadata);
@@ -36,10 +36,7 @@ where
         bail!("Only NFTs or pNFTs can have creators be verified");
     }
 
-    let verify_ix = verify_builder
-        .build(VerificationArgs::CreatorV1)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    let verify_ix = verify_builder.build();
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(

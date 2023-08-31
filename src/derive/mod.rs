@@ -1,4 +1,4 @@
-use mpl_token_metadata::{id, state::TOKEN_RECORD_SEED};
+use mpl_token_metadata::ID;
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
 
@@ -10,7 +10,7 @@ pub fn derive_generic_pda(seeds: Vec<&[u8]>, program_id: Pubkey) -> Pubkey {
 }
 
 pub fn derive_metadata_pda(pubkey: &Pubkey) -> Pubkey {
-    let metaplex_pubkey = id();
+    let metaplex_pubkey = ID;
 
     let seeds = &[
         "metadata".as_bytes(),
@@ -23,7 +23,7 @@ pub fn derive_metadata_pda(pubkey: &Pubkey) -> Pubkey {
 }
 
 pub fn derive_edition_pda(pubkey: &Pubkey) -> Pubkey {
-    let metaplex_pubkey = id();
+    let metaplex_pubkey = ID;
 
     let seeds = &[
         "metadata".as_bytes(),
@@ -37,7 +37,7 @@ pub fn derive_edition_pda(pubkey: &Pubkey) -> Pubkey {
 }
 
 pub fn derive_edition_marker_pda(pubkey: &Pubkey, edition_num: u64) -> Pubkey {
-    let metaplex_pubkey = id();
+    let metaplex_pubkey = ID;
 
     let num: String = (edition_num / 248).to_string();
 

@@ -1,8 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use mpl_token_metadata::{
-    instruction::{builders::TransferBuilder, InstructionBuilder, TransferArgs},
-    processor::AuthorizationData,
-    state::{ProgrammableConfig, TokenStandard},
+    instructions::TransferV1Builder,
+    types::{AuthorizationData, ProgrammableConfig, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
@@ -62,21 +61,21 @@ fn transfer_asset_v1<P: ToPubkey>(
     let mut asset = Asset::new(mint);
     let payer = payer.unwrap_or(authority);
 
-    let transfer_args = TransferArgs::V1 {
-        amount,
-        authorization_data,
-    };
-
-    let mut transfer_builder = TransferBuilder::new();
+    let mut transfer_builder = TransferV1Builder::new();
     transfer_builder
         .payer(payer.pubkey())
         .authority(authority.pubkey())
         .token(source_token)
         .token_owner(source_owner)
-        .destination(destination_token)
+        .destination_token(destination_token)
         .destination_owner(destination_owner)
         .mint(asset.mint)
-        .metadata(asset.metadata);
+        .metadata(asset.metadata)
+        .amount(amount);
+
+    if let Some(data) = authorization_data {
+        transfer_builder.authorization_data(data);
+    }
 
     let md = asset.get_metadata(client)?;
 
@@ -88,7 +87,7 @@ fn transfer_asset_v1<P: ToPubkey>(
         let source_token_record = asset.get_token_record(&source_token);
         let destination_token_record = asset.get_token_record(&destination_token);
         transfer_builder
-            .owner_token_record(source_token_record)
+            .token_record(source_token_record)
             .destination_token_record(destination_token_record);
 
         // If the asset's metadata account has auth rules set, we need to pass the
@@ -114,10 +113,7 @@ fn transfer_asset_v1<P: ToPubkey>(
         transfer_builder.edition(asset.edition.unwrap());
     }
 
-    let transfer_ix = transfer_builder
-        .build(transfer_args)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    let transfer_ix = transfer_builder.build();
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(

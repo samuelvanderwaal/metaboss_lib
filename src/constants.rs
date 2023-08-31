@@ -24,3 +24,4 @@ pub const EDITION_V1_BS58: &str = "2";
 
 pub const METADATA_PREFIX: &str = "metadata";
 pub const EDITION_PREFIX: &str = "edition";
+pub const TOKEN_RECORD_SEED: &str = "token_record";

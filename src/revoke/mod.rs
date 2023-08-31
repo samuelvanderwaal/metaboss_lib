@@ -1,8 +1,9 @@
 use anyhow::{anyhow, Result};
 use mpl_token_metadata::{
-    instruction::{builders::RevokeBuilder, InstructionBuilder, MetadataDelegateRole, RevokeArgs},
-    pda::{find_metadata_delegate_record_account, find_token_record_account},
-    state::TokenStandard,
+    accounts::{MetadataDelegateRecord, TokenRecord},
+    hooked::MetadataDelegateRoleSeed,
+    instructions::RevokeStandardV1Builder,
+    types::{MetadataDelegateRole, RevokeArgs, TokenStandard},
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
@@ -124,14 +125,13 @@ where
             None
         };
 
-    let mut revoke_builder = RevokeBuilder::new();
+    let mut revoke_builder = RevokeStandardV1Builder::new();
     revoke_builder
         .delegate(delegate)
         .mint(mint)
         .metadata(asset.metadata)
         .payer(payer.pubkey())
-        .authority(authority.pubkey())
-        .spl_token_program(spl_token::ID);
+        .authority(authority.pubkey());
 
     match revoke_args {
         RevokeArgs::SaleV1 { .. }
@@ -141,67 +141,67 @@ where
         | RevokeArgs::LockedTransferV1 { .. }
         | RevokeArgs::MigrationV1 => {
             let token = token.ok_or(anyhow!("Missing required token account"))?;
-            let (token_record, _) = find_token_record_account(&mint, &token);
+            let (token_record, _) = TokenRecord::find_pda(&mint, &token);
             revoke_builder.token_record(token_record);
         }
         RevokeArgs::AuthorityItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::AuthorityItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::AuthorityItem),
                 &payer.pubkey(),
                 &delegate,
             );
             revoke_builder.delegate_record(delegate_record);
         }
         RevokeArgs::DataV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::Data,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::Data),
                 &payer.pubkey(),
                 &delegate,
             );
             revoke_builder.delegate_record(delegate_record);
         }
         RevokeArgs::DataItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::DataItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::DataItem),
                 &payer.pubkey(),
                 &delegate,
             );
             revoke_builder.delegate_record(delegate_record);
         }
         RevokeArgs::CollectionV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::Collection,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::Collection),
                 &payer.pubkey(),
                 &delegate,
             );
             revoke_builder.delegate_record(delegate_record);
         }
         RevokeArgs::CollectionItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::CollectionItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::CollectionItem),
                 &payer.pubkey(),
                 &delegate,
             );
             revoke_builder.delegate_record(delegate_record);
         }
         RevokeArgs::ProgrammableConfigV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::ProgrammableConfig,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::ProgrammableConfig),
                 &payer.pubkey(),
                 &delegate,
             );
             revoke_builder.delegate_record(delegate_record);
         }
         RevokeArgs::ProgrammableConfigItemV1 { .. } => {
-            let (delegate_record, _) = find_metadata_delegate_record_account(
+            let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
-                MetadataDelegateRole::ProgrammableConfigItem,
+                MetadataDelegateRoleSeed::from(MetadataDelegateRole::ProgrammableConfigItem),
                 &payer.pubkey(),
                 &delegate,
             );
@@ -225,10 +225,7 @@ where
         revoke_builder.master_edition(asset.edition.unwrap());
     }
 
-    let revoke_ix = revoke_builder
-        .build(revoke_args)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    let revoke_ix: Instruction = revoke_builder.build();
 
     Ok(revoke_ix)
 }
