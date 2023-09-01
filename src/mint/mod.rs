@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use borsh::{BorshDeserialize, BorshSerialize};
 use mpl_token_metadata::{
     instructions::{
         CreateMasterEditionV3Builder, CreateMetadataAccountV3Builder, CreateV1Builder,
@@ -36,9 +35,7 @@ use crate::{
 };
 
 /// Data representation of an asset.
-#[repr(C)]
-#[cfg_attr(feature = "serde-feature", derive(Serialize, Deserialize))]
-#[derive(BorshSerialize, BorshDeserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct AssetData {
     /// The name of the asset.
     pub name: String,
@@ -63,13 +60,6 @@ pub struct AssetData {
     /// Collection item details.
     pub collection_details: Option<CollectionDetails>,
     /// Programmable rule set for the asset.
-    #[cfg_attr(
-        feature = "serde-feature",
-        serde(
-            deserialize_with = "deser_option_pubkey",
-            serialize_with = "ser_option_pubkey"
-        )
-    )]
     pub rule_set: Option<Pubkey>,
 }
 
