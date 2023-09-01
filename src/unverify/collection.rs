@@ -1,4 +1,7 @@
-use mpl_token_metadata::instruction::builders::UnverifyBuilder;
+use mpl_token_metadata::{
+    accounts::MetadataDelegateRecord, hooked::MetadataDelegateRoleSeed,
+    instructions::UnverifyCollectionV1Builder, types::MetadataDelegateRole,
+};
 use solana_program::instruction::Instruction;
 
 use super::*;
@@ -92,7 +95,7 @@ where
 
     collection_asset.add_edition();
 
-    let mut unverify_builder = UnverifyBuilder::new();
+    let mut unverify_builder = UnverifyCollectionV1Builder::new();
     unverify_builder
         .authority(authority.pubkey())
         .metadata(asset.metadata)
@@ -100,19 +103,16 @@ where
         .collection_metadata(collection_asset.metadata);
 
     if is_delegate {
-        let (pda_key, _) = find_metadata_delegate_record_account(
+        let (pda_key, _) = MetadataDelegateRecord::find_pda(
             &collection_mint,
-            MetadataDelegateRole::Collection,
+            MetadataDelegateRoleSeed::from(MetadataDelegateRole::Collection),
             &md.update_authority,
             &authority.pubkey(),
         );
         unverify_builder.delegate_record(pda_key);
     }
 
-    let ix = unverify_builder
-        .build(VerificationArgs::CollectionV1)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    let ix = unverify_builder.build();
 
     Ok(ix)
 }

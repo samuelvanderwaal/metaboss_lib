@@ -1,7 +1,10 @@
 use std::{fmt::Display, str::FromStr};
 
 use anyhow::Result;
-use mpl_token_metadata::state::{Creator, Metadata, ProgrammableConfig, TokenStandard};
+use mpl_token_metadata::{
+    accounts::Metadata,
+    types::{Creator, ProgrammableConfig, TokenStandard},
+};
 
 use crate::decode::ToPubkey;
 
@@ -110,18 +113,14 @@ impl Display for MetadataValue {
 
 pub fn check_metadata_value(metadata: &Metadata, value: &MetadataValue) -> bool {
     match value {
-        MetadataValue::Name(name) => metadata
-            .data
-            .name
-            .trim_matches(char::from(0))
-            .contains(name),
-        MetadataValue::Symbol(symbol) => symbol == metadata.data.symbol.trim_matches(char::from(0)),
+        MetadataValue::Name(name) => metadata.name.trim_matches(char::from(0)).contains(name),
+        MetadataValue::Symbol(symbol) => symbol == metadata.symbol.trim_matches(char::from(0)),
 
-        MetadataValue::Uri(uri) => uri == metadata.data.uri.trim_matches(char::from(0)),
+        MetadataValue::Uri(uri) => uri == metadata.uri.trim_matches(char::from(0)),
         MetadataValue::SellerFeeBasisPoints(seller_fee_basis_points) => {
-            *seller_fee_basis_points == metadata.data.seller_fee_basis_points
+            *seller_fee_basis_points == metadata.seller_fee_basis_points
         }
-        MetadataValue::Creators(creators) => Some(creators) == metadata.data.creators.as_ref(),
+        MetadataValue::Creators(creators) => Some(creators) == metadata.creators.as_ref(),
         MetadataValue::UpdateAuthority(update_authority) => {
             update_authority == &metadata.update_authority.to_string()
         }

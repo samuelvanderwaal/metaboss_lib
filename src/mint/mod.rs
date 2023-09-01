@@ -1,16 +1,18 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
+use borsh::{BorshDeserialize, BorshSerialize};
 use mpl_token_metadata::{
-    id,
-    instruction::{
-        builders::{CreateBuilder, MintBuilder},
-        create_master_edition_v3, create_metadata_accounts_v3, update_metadata_accounts_v2,
-        CreateArgs, InstructionBuilder, MintArgs,
+    instructions::{
+        CreateMasterEditionV3Builder, CreateMetadataAccountV3Builder, CreateV1Builder,
+        MintV1Builder, UpdateMetadataAccountV2Builder,
     },
-    processor::AuthorizationData,
-    state::{AssetData, PrintSupply, TokenStandard},
+    types::{
+        AuthorizationData, Collection, CollectionDetails, Creator, PrintSupply, TokenStandard, Uses,
+    },
+    ID,
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
+use solana_program::system_program;
 use solana_sdk::{
     pubkey::Pubkey,
     signature::Signature,
@@ -32,6 +34,44 @@ use crate::{
     data::{Asset, NFTData},
     derive::derive_token_record_pda,
 };
+
+/// Data representation of an asset.
+#[repr(C)]
+#[cfg_attr(feature = "serde-feature", derive(Serialize, Deserialize))]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Eq, Debug, Clone)]
+pub struct AssetData {
+    /// The name of the asset.
+    pub name: String,
+    /// The symbol for the asset.
+    pub symbol: String,
+    /// URI pointing to JSON representing the asset.
+    pub uri: String,
+    /// Royalty basis points that goes to creators in secondary sales (0-10000).
+    pub seller_fee_basis_points: u16,
+    /// Array of creators.
+    pub creators: Option<Vec<Creator>>,
+    // Immutable, once flipped, all sales of this metadata are considered secondary.
+    pub primary_sale_happened: bool,
+    // Whether or not the data struct is mutable (default is not).
+    pub is_mutable: bool,
+    /// Type of the token.
+    pub token_standard: TokenStandard,
+    /// Collection information.
+    pub collection: Option<Collection>,
+    /// Uses information.
+    pub uses: Option<Uses>,
+    /// Collection item details.
+    pub collection_details: Option<CollectionDetails>,
+    /// Programmable rule set for the asset.
+    #[cfg_attr(
+        feature = "serde-feature",
+        serde(
+            deserialize_with = "deser_option_pubkey",
+            serialize_with = "ser_option_pubkey"
+        )
+    )]
+    pub rule_set: Option<Pubkey>,
+}
 
 pub enum MintAssetArgs<'a, P: ToPubkey> {
     V1 {
@@ -83,26 +123,54 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         }
     }
 
-    let create_args = CreateArgs::V1 {
-        asset_data,
-        decimals: mint_decimals,
-        print_supply,
-    };
-
-    let mut create_builder = CreateBuilder::new();
+    let mut create_builder = CreateV1Builder::new();
     create_builder
-        .mint(asset.mint)
+        .mint(asset.mint, true)
         .metadata(asset.metadata)
         .authority(authority.pubkey())
         .payer(payer.pubkey())
-        .update_authority(authority.pubkey())
-        .initialize_mint(true)
-        .update_authority_as_signer(true);
+        .update_authority(authority.pubkey(), true)
+        .name(asset_data.name)
+        .symbol(asset_data.symbol)
+        .uri(asset_data.uri)
+        .seller_fee_basis_points(asset_data.seller_fee_basis_points)
+        .primary_sale_happened(asset_data.primary_sale_happened)
+        .is_mutable(asset_data.is_mutable)
+        .token_standard(token_standard.clone())
+        .system_program(system_program::ID);
+
+    if let Some(creators) = asset_data.creators {
+        create_builder.creators(creators);
+    }
+
+    if let Some(collection) = asset_data.collection {
+        create_builder.collection(collection);
+    }
+
+    if let Some(uses) = asset_data.uses {
+        create_builder.uses(uses);
+    }
+
+    if let Some(details) = asset_data.collection_details {
+        create_builder.collection_details(details);
+    }
+
+    if let Some(rule_set) = asset_data.rule_set {
+        create_builder.rule_set(rule_set);
+    }
+
+    if let Some(decimals) = mint_decimals {
+        create_builder.decimals(decimals);
+    }
+
+    if let Some(print_supply) = print_supply {
+        create_builder.print_supply(print_supply);
+    }
 
     let token_ata = get_associated_token_address(&receiver, &asset.mint);
     let token_record = derive_token_record_pda(&asset.mint, &token_ata);
 
-    let mut mint_builder = MintBuilder::new();
+    let mut mint_builder = MintV1Builder::new();
     mint_builder
         .metadata(asset.metadata)
         .token(token_ata)
@@ -110,7 +178,8 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         .token_record(token_record)
         .mint(asset.mint)
         .authority(authority.pubkey())
-        .payer(payer.pubkey());
+        .payer(payer.pubkey())
+        .system_program(system_program::ID);
 
     if matches!(
         token_standard,
@@ -122,22 +191,18 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         asset.add_edition();
         create_builder.master_edition(asset.edition.unwrap());
         mint_builder.master_edition(asset.edition.unwrap());
+        mint_builder.amount(amount);
     }
 
-    let create_ix = create_builder
-        .build(create_args)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    let create_ix = create_builder.build();
 
-    let mint_args = MintArgs::V1 {
-        amount,
-        authorization_data,
-    };
+    mint_builder.amount(amount);
 
-    let mint_ix = mint_builder
-        .build(mint_args)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    if let Some(data) = authorization_data {
+        mint_builder.authorization_data(data);
+    }
+
+    let mint_ix = mint_builder.build();
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(
@@ -168,7 +233,7 @@ pub fn mint(
     immutable: bool,
     primary_sale_happened: bool,
 ) -> Result<(Signature, Pubkey)> {
-    let metaplex_program_id = id();
+    let metaplex_program_id = ID;
     let mint = Keypair::new();
 
     // Convert local NFTData type to Metaplex Data type
@@ -235,35 +300,28 @@ pub fn mint(
     let (master_edition_account, _pda) =
         Pubkey::find_program_address(master_edition_seeds, &metaplex_program_id);
 
-    let create_metadata_account_ix = create_metadata_accounts_v3(
-        metaplex_program_id,
-        metadata_account,
-        mint.pubkey(),
-        funder.pubkey(),
-        funder.pubkey(),
-        funder.pubkey(),
-        data.name,
-        data.symbol,
-        data.uri,
-        data.creators,
-        data.seller_fee_basis_points,
-        true,
-        !immutable,
-        None,
-        None,
-        None,
-    );
+    let create_metadata_account_ix = CreateMetadataAccountV3Builder::new()
+        .metadata(metadata_account)
+        .mint(mint.pubkey())
+        .mint_authority(funder.pubkey())
+        .payer(funder.pubkey())
+        .update_authority(funder.pubkey())
+        .data(data)
+        .is_mutable(!immutable)
+        .system_program(system_program::ID)
+        .build();
 
-    let create_master_edition_account_ix = create_master_edition_v3(
-        metaplex_program_id,
-        master_edition_account,
-        mint.pubkey(),
-        funder.pubkey(),
-        funder.pubkey(),
-        metadata_account,
-        funder.pubkey(),
-        Some(0),
-    );
+    let create_master_edition_account_ix = CreateMasterEditionV3Builder::new()
+        .edition(master_edition_account)
+        .mint(mint.pubkey())
+        .update_authority(funder.pubkey())
+        .mint_authority(funder.pubkey())
+        .payer(funder.pubkey())
+        .metadata(metadata_account)
+        .token_program(spl_token::ID)
+        .system_program(system_program::ID)
+        .max_supply(0)
+        .build();
 
     let mut instructions = vec![
         create_mint_account_ix,
@@ -275,15 +333,11 @@ pub fn mint(
     ];
 
     if primary_sale_happened {
-        let ix = update_metadata_accounts_v2(
-            metaplex_program_id,
-            metadata_account,
-            funder.pubkey(),
-            None,
-            None,
-            Some(true),
-            None,
-        );
+        let ix = UpdateMetadataAccountV2Builder::new()
+            .metadata(metadata_account)
+            .update_authority(funder.pubkey())
+            .primary_sale_happened(true)
+            .build();
         instructions.push(ix);
     }
 

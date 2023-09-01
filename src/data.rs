@@ -1,5 +1,5 @@
 use anyhow::Result;
-use mpl_token_metadata::state::Metadata;
+use mpl_token_metadata::accounts::Metadata;
 use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_program::{program_pack::Pack, pubkey::Pubkey};

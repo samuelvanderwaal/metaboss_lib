@@ -1,11 +1,14 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use mpl_token_metadata::{
-    instruction::{builders::UpdateBuilder, InstructionBuilder, UpdateArgs},
-    state::{ProgrammableConfig, TokenStandard},
+    instructions::{UpdateV1Builder, UpdateV1InstructionDataData},
+    types::{
+        AuthorizationData, CollectionDetailsToggle, CollectionToggle, ProgrammableConfig,
+        RuleSetToggle, TokenStandard, UpdateArgsV1Data, UsesToggle,
+    },
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
-use solana_program::instruction::Instruction;
+use solana_program::{instruction::Instruction, pubkey::Pubkey};
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
@@ -14,6 +17,35 @@ use solana_sdk::{
 
 use crate::{data::Asset, decode::ToPubkey, nft::get_nft_token_account};
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct V1UpdateArgs {
+    pub new_update_authority: Option<Pubkey>,
+    pub data: Option<UpdateArgsV1Data>,
+    pub primary_sale_happened: Option<bool>,
+    pub is_mutable: Option<bool>,
+    pub collection: CollectionToggle,
+    pub collection_details: CollectionDetailsToggle,
+    pub uses: UsesToggle,
+    pub rule_set: RuleSetToggle,
+    pub authorization_data: Option<AuthorizationData>,
+}
+
+impl Default for V1UpdateArgs {
+    fn default() -> Self {
+        Self {
+            new_update_authority: None,
+            data: None,
+            primary_sale_happened: None,
+            is_mutable: None,
+            collection: CollectionToggle::None,
+            collection_details: CollectionDetailsToggle::None,
+            uses: UsesToggle::None,
+            rule_set: RuleSetToggle::None,
+            authorization_data: None,
+        }
+    }
+}
+
 pub enum UpdateAssetArgs<'a, P1, P2, P3: ToPubkey> {
     V1 {
         payer: Option<&'a Keypair>,
@@ -21,7 +53,7 @@ pub enum UpdateAssetArgs<'a, P1, P2, P3: ToPubkey> {
         mint: P1,
         token: Option<P2>,
         delegate_record: Option<P3>,
-        update_args: UpdateArgs,
+        update_args: V1UpdateArgs,
     },
 }
 
@@ -123,7 +155,7 @@ where
             None
         };
 
-    let mut update_builder = UpdateBuilder::new();
+    let mut update_builder = UpdateV1Builder::new();
     update_builder
         .payer(payer.pubkey())
         .authority(authority.pubkey())
@@ -160,10 +192,17 @@ where
         update_builder.authorization_rules(rule_set);
     }
 
-    let update_ix = update_builder
-        .build(update_args)
-        .map_err(|e| anyhow!(e.to_string()))?
-        .instruction();
+    if let Some(data) = update_args.data {
+        update_builder.data(UpdateV1InstructionDataData {
+            name: data.name,
+            symbol: data.symbol,
+            uri: data.uri,
+            seller_fee_basis_points: data.seller_fee_basis_points,
+            creators: data.creators,
+        });
+    }
+
+    let update_ix = update_builder.build();
 
     Ok(update_ix)
 }

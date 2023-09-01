@@ -8,11 +8,9 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.52"
-borsh = "0.9.3"
-mpl-token-auth-rules = { version = "1.4.3-beta.1", features = [
-    "no-entrypoint",
-] }
-mpl-token-metadata = { version = "1.13.2", features = ["no-entrypoint"] }
+borsh = { version = "0.10" }
+mpl-token-auth-rules = { version = "1.4.3", features = ["no-entrypoint"] }
+mpl-token-metadata = "2.0"
 retry = "1.3.0"
 rmp-serde = "1.1.1"
 serde = { version = "1.0.152", features = ["derive"] }

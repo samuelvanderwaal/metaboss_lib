@@ -1,10 +1,7 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use mpl_token_metadata::{
-    instruction::{
-        builders::VerifyBuilder, InstructionBuilder, MetadataDelegateRole, VerificationArgs,
-    },
-    pda::find_metadata_delegate_record_account,
-    state::TokenStandard,
+    instructions::{VerifyCollectionV1Builder, VerifyCreatorV1Builder},
+    types::TokenStandard,
 };
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
