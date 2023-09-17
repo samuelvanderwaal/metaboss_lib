@@ -142,7 +142,7 @@ where
         | RevokeArgs::MigrationV1 => {
             let token = token.ok_or(anyhow!("Missing required token account"))?;
             let (token_record, _) = TokenRecord::find_pda(&mint, &token);
-            revoke_builder.token_record(token_record);
+            revoke_builder.token_record(Some(token_record));
         }
         RevokeArgs::AuthorityItemV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -151,7 +151,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            revoke_builder.delegate_record(delegate_record);
+            revoke_builder.delegate_record(Some(delegate_record));
         }
         RevokeArgs::DataV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -160,7 +160,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            revoke_builder.delegate_record(delegate_record);
+            revoke_builder.delegate_record(Some(delegate_record));
         }
         RevokeArgs::DataItemV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -169,7 +169,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            revoke_builder.delegate_record(delegate_record);
+            revoke_builder.delegate_record(Some(delegate_record));
         }
         RevokeArgs::CollectionV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -178,7 +178,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            revoke_builder.delegate_record(delegate_record);
+            revoke_builder.delegate_record(Some(delegate_record));
         }
         RevokeArgs::CollectionItemV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -187,7 +187,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            revoke_builder.delegate_record(delegate_record);
+            revoke_builder.delegate_record(Some(delegate_record));
         }
         RevokeArgs::ProgrammableConfigV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -196,7 +196,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            revoke_builder.delegate_record(delegate_record);
+            revoke_builder.delegate_record(Some(delegate_record));
         }
         RevokeArgs::ProgrammableConfigItemV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -205,7 +205,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            revoke_builder.delegate_record(delegate_record);
+            revoke_builder.delegate_record(Some(delegate_record));
         }
         RevokeArgs::StandardV1 { .. } => { /* nothing to add */ }
     }
@@ -222,10 +222,10 @@ where
         ) | None
     ) {
         asset.add_edition();
-        revoke_builder.master_edition(asset.edition.unwrap());
+        revoke_builder.master_edition(asset.edition);
     }
 
-    let revoke_ix: Instruction = revoke_builder.build();
+    let revoke_ix: Instruction = revoke_builder.instruction();
 
     Ok(revoke_ix)
 }

@@ -87,8 +87,8 @@ fn transfer_asset_v1<P: ToPubkey>(
         let source_token_record = asset.get_token_record(&source_token);
         let destination_token_record = asset.get_token_record(&destination_token);
         transfer_builder
-            .token_record(source_token_record)
-            .destination_token_record(destination_token_record);
+            .token_record(Some(source_token_record))
+            .destination_token_record(Some(destination_token_record));
 
         // If the asset's metadata account has auth rules set, we need to pass the
         // account in.
@@ -96,8 +96,8 @@ fn transfer_asset_v1<P: ToPubkey>(
             rule_set: Some(auth_rules),
         }) = md.programmable_config
         {
-            transfer_builder.authorization_rules_program(mpl_token_auth_rules::ID);
-            transfer_builder.authorization_rules(auth_rules);
+            transfer_builder.authorization_rules_program(Some(mpl_token_auth_rules::ID));
+            transfer_builder.authorization_rules(Some(auth_rules));
         }
     }
 
@@ -110,10 +110,10 @@ fn transfer_asset_v1<P: ToPubkey>(
         ) | None
     ) {
         asset.add_edition();
-        transfer_builder.edition(asset.edition.unwrap());
+        transfer_builder.edition(asset.edition);
     }
 
-    let transfer_ix = transfer_builder.build();
+    let transfer_ix = transfer_builder.instruction();
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(

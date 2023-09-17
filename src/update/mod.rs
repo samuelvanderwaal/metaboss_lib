@@ -1,9 +1,9 @@
 use anyhow::Result;
 use mpl_token_metadata::{
-    instructions::{UpdateV1Builder, UpdateV1InstructionDataData},
+    instructions::{UpdateV1, UpdateV1InstructionArgs},
     types::{
-        AuthorizationData, CollectionDetailsToggle, CollectionToggle, ProgrammableConfig,
-        RuleSetToggle, TokenStandard, UpdateArgsV1Data, UsesToggle,
+        AuthorizationData, CollectionDetailsToggle, CollectionToggle, Data, ProgrammableConfig,
+        RuleSetToggle, TokenStandard, UsesToggle,
     },
 };
 use retry::{delay::Exponential, retry};
@@ -17,10 +17,11 @@ use solana_sdk::{
 
 use crate::{data::Asset, decode::ToPubkey, nft::get_nft_token_account};
 
+// Wrapper type for the UpdateV1InstructionArgs type from mpl-token-metadata since it doesn't have a `default` implementation.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct V1UpdateArgs {
     pub new_update_authority: Option<Pubkey>,
-    pub data: Option<UpdateArgsV1Data>,
+    pub data: Option<Data>,
     pub primary_sale_happened: Option<bool>,
     pub is_mutable: Option<bool>,
     pub collection: CollectionToggle,
@@ -42,6 +43,34 @@ impl Default for V1UpdateArgs {
             uses: UsesToggle::None,
             rule_set: RuleSetToggle::None,
             authorization_data: None,
+        }
+    }
+}
+
+impl From<V1UpdateArgs> for UpdateV1InstructionArgs {
+    fn from(args: V1UpdateArgs) -> Self {
+        let V1UpdateArgs {
+            new_update_authority,
+            data,
+            primary_sale_happened,
+            is_mutable,
+            collection,
+            collection_details,
+            uses,
+            rule_set,
+            authorization_data,
+        } = args;
+
+        Self {
+            new_update_authority,
+            data,
+            primary_sale_happened,
+            is_mutable,
+            collection,
+            collection_details,
+            uses,
+            rule_set,
+            authorization_data,
         }
     }
 }
@@ -155,13 +184,6 @@ where
             None
         };
 
-    let mut update_builder = UpdateV1Builder::new();
-    update_builder
-        .payer(payer.pubkey())
-        .authority(authority.pubkey())
-        .mint(asset.mint)
-        .metadata(asset.metadata);
-
     // Fungibles without a token standard will fail when an edition is passed in, but
     // assets in this call are much more likely to be NonFungible so we assume that and
     // let Token Metadata and God sort it out.
@@ -174,35 +196,31 @@ where
         ) | None
     ) {
         asset.add_edition();
-        update_builder.edition(asset.edition.unwrap());
-    }
+    };
 
-    if let Some(token) = token {
-        update_builder.token(token);
-    }
-
-    if let Some(delegate_record) = delegate_record {
-        update_builder.delegate_record(delegate_record);
-    }
-
-    if let Some(ProgrammableConfig::V1 {
+    let (authorization_rules, authorization_rules_program) = if let Some(ProgrammableConfig::V1 {
         rule_set: Some(rule_set),
     }) = md.programmable_config
     {
-        update_builder.authorization_rules(rule_set);
-    }
+        (Some(rule_set), Some(mpl_token_auth_rules::ID))
+    } else {
+        (None, None)
+    };
 
-    if let Some(data) = update_args.data {
-        update_builder.data(UpdateV1InstructionDataData {
-            name: data.name,
-            symbol: data.symbol,
-            uri: data.uri,
-            seller_fee_basis_points: data.seller_fee_basis_points,
-            creators: data.creators,
-        });
+    let update_ix = UpdateV1 {
+        payer: payer.pubkey(),
+        authority: authority.pubkey(),
+        mint: asset.mint,
+        metadata: asset.metadata,
+        delegate_record,
+        token,
+        edition: asset.edition,
+        system_program: solana_program::system_program::ID,
+        sysvar_instructions: solana_program::sysvar::instructions::ID,
+        authorization_rules,
+        authorization_rules_program,
     }
-
-    let update_ix = update_builder.build();
+    .instruction(update_args.into());
 
     Ok(update_ix)
 }

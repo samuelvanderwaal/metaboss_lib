@@ -65,7 +65,7 @@ fn get_existing_revision_map(
 
     // Deserialize header.
     let header: RuleSetHeader = if data.len() >= RULE_SET_SERIALIZED_HEADER_LEN {
-        RuleSetHeader::try_from_slice(&data[..RULE_SET_SERIALIZED_HEADER_LEN])?
+        RuleSetHeader::deserialize(&mut &data[..RULE_SET_SERIALIZED_HEADER_LEN])?
     } else {
         return Err(RuleSetError::DataTypeMismatch.into());
     };
@@ -85,7 +85,7 @@ fn get_existing_revision_map(
 
             // Deserialize revision map.
             if start < data.len() {
-                let revision_map = RuleSetRevisionMapV1::try_from_slice(&data[start..])?;
+                let revision_map = RuleSetRevisionMapV1::deserialize(&mut &data[start..])?;
                 Ok((revision_map, header.rev_map_version_location))
             } else {
                 Err(RuleSetError::DataTypeMismatch.into())

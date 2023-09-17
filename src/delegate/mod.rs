@@ -142,7 +142,7 @@ where
         | DelegateArgs::LockedTransferV1 { amount, .. } => {
             let token = token.ok_or(anyhow!("Missing required token account"))?;
             let (token_record, _) = TokenRecord::find_pda(&mint, &token);
-            delegate_builder.token_record(token_record);
+            delegate_builder.token_record(Some(token_record));
             delegate_builder.amount(amount);
         }
         // Metadata Delegates
@@ -153,7 +153,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            delegate_builder.delegate_record(delegate_record);
+            delegate_builder.delegate_record(Some(delegate_record));
         }
         DelegateArgs::DataV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -162,7 +162,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            delegate_builder.delegate_record(delegate_record);
+            delegate_builder.delegate_record(Some(delegate_record));
         }
         DelegateArgs::DataItemV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -171,7 +171,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            delegate_builder.delegate_record(delegate_record);
+            delegate_builder.delegate_record(Some(delegate_record));
         }
         DelegateArgs::CollectionV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -180,7 +180,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            delegate_builder.delegate_record(delegate_record);
+            delegate_builder.delegate_record(Some(delegate_record));
         }
         DelegateArgs::CollectionItemV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -189,7 +189,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            delegate_builder.delegate_record(delegate_record);
+            delegate_builder.delegate_record(Some(delegate_record));
         }
         DelegateArgs::ProgrammableConfigV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -198,7 +198,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            delegate_builder.delegate_record(delegate_record);
+            delegate_builder.delegate_record(Some(delegate_record));
         }
         DelegateArgs::ProgrammableConfigItemV1 { .. } => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
@@ -207,7 +207,7 @@ where
                 &payer.pubkey(),
                 &delegate,
             );
-            delegate_builder.delegate_record(delegate_record);
+            delegate_builder.delegate_record(Some(delegate_record));
         }
         DelegateArgs::StandardV1 { .. } => { /* nothing to add */ }
     }
@@ -224,10 +224,10 @@ where
         ) | None
     ) {
         asset.add_edition();
-        delegate_builder.master_edition(asset.edition.unwrap());
+        delegate_builder.master_edition(asset.edition);
     }
 
-    let delegate_ix = delegate_builder.build();
+    let delegate_ix = delegate_builder.instruction();
 
     Ok(delegate_ix)
 }

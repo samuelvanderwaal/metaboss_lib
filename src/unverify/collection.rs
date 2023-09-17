@@ -100,7 +100,7 @@ where
         .authority(authority.pubkey())
         .metadata(asset.metadata)
         .collection_mint(collection_mint)
-        .collection_metadata(collection_asset.metadata);
+        .collection_metadata(Some(collection_asset.metadata));
 
     if is_delegate {
         let (pda_key, _) = MetadataDelegateRecord::find_pda(
@@ -109,10 +109,10 @@ where
             &md.update_authority,
             &authority.pubkey(),
         );
-        unverify_builder.delegate_record(pda_key);
+        unverify_builder.delegate_record(Some(pda_key));
     }
 
-    let ix = unverify_builder.build();
+    let ix = unverify_builder.instruction();
 
     Ok(ix)
 }
