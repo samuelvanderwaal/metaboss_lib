@@ -109,7 +109,8 @@ impl From<DataV2> for NftData {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateNftData {
-    pub mint_account: String,
+    pub mint: String,
+    #[serde(flatten)]
     pub data: Data,
 }
 

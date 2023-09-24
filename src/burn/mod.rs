@@ -2,7 +2,6 @@ use anyhow::Result;
 use mpl_token_metadata::{instructions::BurnV1Builder, types::TokenStandard};
 use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
-use solana_program::{system_program, sysvar};
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
@@ -59,10 +58,7 @@ where
         .mint(asset.mint)
         .metadata(asset.metadata)
         .token(token)
-        .amount(amount)
-        .system_program(system_program::ID)
-        .sysvar_instructions(sysvar::ID)
-        .spl_token_program(spl_token::ID);
+        .amount(amount);
 
     if matches!(
         md.token_standard,
