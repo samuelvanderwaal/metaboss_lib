@@ -43,7 +43,7 @@ pub fn decode_metadata(client: &RpcClient, pubkey: &Pubkey) -> Result<Metadata, 
         .get_account_data(pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    Metadata::try_from_slice(&account_data)
+    Metadata::deserialize(&mut account_data.as_ref())
         .map_err(|e| DecodeError::DecodeMetadataFailed(e.to_string()))
 }
 
@@ -55,10 +55,11 @@ pub fn decode_master(client: &RpcClient, pubkey: &Pubkey) -> Result<MasterEditio
         }
     };
 
-    let master_edition: MasterEdition = match MasterEdition::try_from_slice(&account_data) {
-        Ok(m) => m,
-        Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
-    };
+    let master_edition: MasterEdition =
+        match MasterEdition::deserialize(&mut account_data.as_slice()) {
+            Ok(m) => m,
+            Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
+        };
 
     Ok(master_edition)
 }
@@ -71,7 +72,7 @@ pub fn decode_edition(client: &RpcClient, pubkey: &Pubkey) -> Result<Edition, De
         }
     };
 
-    let edition: Edition = match Edition::try_from_slice(&account_data) {
+    let edition: Edition = match Edition::deserialize(&mut account_data.as_slice()) {
         Ok(e) => e,
         Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
     };
@@ -173,10 +174,11 @@ pub fn decode_edition_marker<P: ToPubkey>(
         }
     };
 
-    let edition_marker: EditionMarker = match EditionMarker::try_from_slice(&account_data) {
-        Ok(e) => e,
-        Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
-    };
+    let edition_marker: EditionMarker =
+        match EditionMarker::deserialize(&mut account_data.as_slice()) {
+            Ok(e) => e,
+            Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
+        };
 
     Ok(edition_marker)
 }
@@ -208,7 +210,7 @@ pub fn decode_collection_authority_record<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    CollectionAuthorityRecord::try_from_slice(&account_data)
+    CollectionAuthorityRecord::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -222,7 +224,7 @@ pub fn decode_use_authority_record<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    UseAuthorityRecord::try_from_slice(&account_data)
+    UseAuthorityRecord::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -236,7 +238,7 @@ pub fn decode_metadata_delegate<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    MetadataDelegateRecord::try_from_slice(&account_data)
+    MetadataDelegateRecord::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -250,7 +252,7 @@ pub fn decode_token_record<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    TokenRecord::try_from_slice(&account_data)
+    TokenRecord::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -269,6 +271,6 @@ pub fn decode_token_record_from_mint<P: ToPubkey>(
         .get_account_data(&token_record_pda)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    TokenRecord::try_from_slice(&account_data)
+    TokenRecord::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }

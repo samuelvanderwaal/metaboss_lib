@@ -3,9 +3,9 @@ use mpl_token_metadata::types::{Creator, DataV2};
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
 
-use crate::data::{NFTCreator, NFTData};
+use crate::data::{NftCreator, NftData};
 
-pub fn convert_local_to_remote_data(local: NFTData) -> Result<DataV2> {
+pub fn convert_local_to_remote_data(local: NftData) -> Result<DataV2> {
     let creators = local
         .creators
         .ok_or_else(|| anyhow!("No creators specified in json file!"))?
@@ -25,7 +25,7 @@ pub fn convert_local_to_remote_data(local: NFTData) -> Result<DataV2> {
     Ok(data)
 }
 
-fn convert_creator(c: &NFTCreator) -> Result<Creator> {
+fn convert_creator(c: &NftCreator) -> Result<Creator> {
     Ok(Creator {
         address: Pubkey::from_str(&c.address)?,
         verified: c.verified,

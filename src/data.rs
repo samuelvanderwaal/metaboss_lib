@@ -1,5 +1,8 @@
 use anyhow::Result;
-use mpl_token_metadata::accounts::Metadata;
+use mpl_token_metadata::{
+    accounts::Metadata,
+    types::{Data, DataV2},
+};
 use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_program::{program_pack::Pack, pubkey::Pubkey};
@@ -47,24 +50,68 @@ impl Asset {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NewUri {
-    mint_account: String,
-    new_uri: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct NFTData {
+pub struct NftData {
     pub name: String,
     pub symbol: String,
     pub uri: String,
     pub seller_fee_basis_points: u16,
-    pub creators: Option<Vec<NFTCreator>>,
+    pub creators: Option<Vec<NftCreator>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UpdateNFTData {
-    pub mint_account: String,
-    pub nft_data: NFTData,
+pub struct NftCreator {
+    pub address: String,
+    pub verified: bool,
+    pub share: u8,
+}
+
+impl From<Metadata> for NftData {
+    fn from(metadata: Metadata) -> Self {
+        Self {
+            name: metadata.name,
+            symbol: metadata.symbol,
+            uri: metadata.uri,
+            seller_fee_basis_points: metadata.seller_fee_basis_points,
+            creators: metadata.creators.map(|creators| {
+                creators
+                    .iter()
+                    .map(|creator| NftCreator {
+                        address: creator.address.to_string(),
+                        verified: creator.verified,
+                        share: creator.share,
+                    })
+                    .collect()
+            }),
+        }
+    }
+}
+
+impl From<DataV2> for NftData {
+    fn from(data: DataV2) -> Self {
+        Self {
+            name: data.name,
+            symbol: data.symbol,
+            uri: data.uri,
+            seller_fee_basis_points: data.seller_fee_basis_points,
+            creators: data.creators.map(|creators| {
+                creators
+                    .iter()
+                    .map(|creator| NftCreator {
+                        address: creator.address.to_string(),
+                        verified: creator.verified,
+                        share: creator.share,
+                    })
+                    .collect()
+            }),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateNftData {
+    pub mint: String,
+    #[serde(flatten)]
+    pub data: Data,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,8 +121,7 @@ pub struct UpdateUriData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NFTCreator {
-    pub address: String,
-    pub verified: bool,
-    pub share: u8,
+pub struct NewUri {
+    mint_account: String,
+    new_uri: String,
 }

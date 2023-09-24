@@ -38,7 +38,7 @@ where
         bail!("Only NFTs or pNFTs can have creators be verified");
     }
 
-    let unverify_ix = unverify_builder.build();
+    let unverify_ix = unverify_builder.instruction();
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(

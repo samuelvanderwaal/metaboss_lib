@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use borsh::{BorshDeserialize, BorshSerialize};
 use mpl_token_metadata::{
     instructions::{
         CreateMasterEditionV3Builder, CreateMetadataAccountV3Builder, CreateV1Builder,
@@ -11,6 +10,7 @@ use mpl_token_metadata::{
     ID,
 };
 use retry::{delay::Exponential, retry};
+use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_program::system_program;
 use solana_sdk::{
@@ -31,14 +31,12 @@ use spl_token::{
 use crate::convert::convert_local_to_remote_data;
 use crate::{constants::MINT_LAYOUT_SIZE, decode::ToPubkey};
 use crate::{
-    data::{Asset, NFTData},
+    data::{Asset, NftData},
     derive::derive_token_record_pda,
 };
 
 /// Data representation of an asset.
-#[repr(C)]
-#[cfg_attr(feature = "serde-feature", derive(Serialize, Deserialize))]
-#[derive(BorshSerialize, BorshDeserialize, PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
 pub struct AssetData {
     /// The name of the asset.
     pub name: String,
@@ -63,13 +61,6 @@ pub struct AssetData {
     /// Collection item details.
     pub collection_details: Option<CollectionDetails>,
     /// Programmable rule set for the asset.
-    #[cfg_attr(
-        feature = "serde-feature",
-        serde(
-            deserialize_with = "deser_option_pubkey",
-            serialize_with = "ser_option_pubkey"
-        )
-    )]
     pub rule_set: Option<Pubkey>,
 }
 
@@ -174,8 +165,8 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
     mint_builder
         .metadata(asset.metadata)
         .token(token_ata)
-        .token_owner(receiver)
-        .token_record(token_record)
+        .token_owner(Some(receiver))
+        .token_record(Some(token_record))
         .mint(asset.mint)
         .authority(authority.pubkey())
         .payer(payer.pubkey())
@@ -189,12 +180,12 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
             bail!("Non-fungible assets must have an amount of 1");
         }
         asset.add_edition();
-        create_builder.master_edition(asset.edition.unwrap());
-        mint_builder.master_edition(asset.edition.unwrap());
+        create_builder.master_edition(asset.edition);
+        mint_builder.master_edition(asset.edition);
         mint_builder.amount(amount);
     }
 
-    let create_ix = create_builder.build();
+    let create_ix = create_builder.instruction();
 
     mint_builder.amount(amount);
 
@@ -202,7 +193,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         mint_builder.authorization_data(data);
     }
 
-    let mint_ix = mint_builder.build();
+    let mint_ix = mint_builder.instruction();
 
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(
@@ -229,14 +220,14 @@ pub fn mint(
     client: &RpcClient,
     funder: Keypair,
     receiver: Pubkey,
-    nft_data: NFTData,
+    nft_data: NftData,
     immutable: bool,
     primary_sale_happened: bool,
 ) -> Result<(Signature, Pubkey)> {
     let metaplex_program_id = ID;
     let mint = Keypair::new();
 
-    // Convert local NFTData type to Metaplex Data type
+    // Convert local Nftdata type to Metaplex Data type
     let data = convert_local_to_remote_data(nft_data)?;
 
     // Allocate memory for the account
@@ -309,7 +300,7 @@ pub fn mint(
         .data(data)
         .is_mutable(!immutable)
         .system_program(system_program::ID)
-        .build();
+        .instruction();
 
     let create_master_edition_account_ix = CreateMasterEditionV3Builder::new()
         .edition(master_edition_account)
@@ -321,7 +312,7 @@ pub fn mint(
         .token_program(spl_token::ID)
         .system_program(system_program::ID)
         .max_supply(0)
-        .build();
+        .instruction();
 
     let mut instructions = vec![
         create_mint_account_ix,
@@ -337,7 +328,7 @@ pub fn mint(
             .metadata(metadata_account)
             .update_authority(funder.pubkey())
             .primary_sale_happened(true)
-            .build();
+            .instruction();
         instructions.push(ix);
     }
 
