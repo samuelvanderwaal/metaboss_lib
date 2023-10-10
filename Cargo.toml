@@ -1,6 +1,6 @@
 [package]
 name = "metaboss_lib"
-version = "0.12.0"
+version = "0.13.0"
 edition = "2021"
 description = "The core library for the metaboss cli."
 repository = "https://github.com/samuelvanderwaal/metaboss_lib"
