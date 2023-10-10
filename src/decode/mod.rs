@@ -43,7 +43,7 @@ pub fn decode_metadata(client: &RpcClient, pubkey: &Pubkey) -> Result<Metadata, 
         .get_account_data(pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    Metadata::deserialize(&mut account_data.as_ref())
+    <Metadata as BorshDeserialize>::deserialize(&mut account_data.as_ref())
         .map_err(|e| DecodeError::DecodeMetadataFailed(e.to_string()))
 }
 
@@ -56,7 +56,7 @@ pub fn decode_master(client: &RpcClient, pubkey: &Pubkey) -> Result<MasterEditio
     };
 
     let master_edition: MasterEdition =
-        match MasterEdition::deserialize(&mut account_data.as_slice()) {
+        match <MasterEdition as BorshDeserialize>::deserialize(&mut account_data.as_slice()) {
             Ok(m) => m,
             Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
         };
@@ -72,10 +72,11 @@ pub fn decode_edition(client: &RpcClient, pubkey: &Pubkey) -> Result<Edition, De
         }
     };
 
-    let edition: Edition = match Edition::deserialize(&mut account_data.as_slice()) {
-        Ok(e) => e,
-        Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
-    };
+    let edition: Edition =
+        match <Edition as BorshDeserialize>::deserialize(&mut account_data.as_slice()) {
+            Ok(e) => e,
+            Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
+        };
 
     Ok(edition)
 }
@@ -175,7 +176,7 @@ pub fn decode_edition_marker<P: ToPubkey>(
     };
 
     let edition_marker: EditionMarker =
-        match EditionMarker::deserialize(&mut account_data.as_slice()) {
+        match <EditionMarker as BorshDeserialize>::deserialize(&mut account_data.as_slice()) {
             Ok(e) => e,
             Err(err) => return Err(DecodeError::DecodeMetadataFailed(err.to_string())),
         };
@@ -210,7 +211,7 @@ pub fn decode_collection_authority_record<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    CollectionAuthorityRecord::deserialize(&mut account_data.as_slice())
+    <CollectionAuthorityRecord as BorshDeserialize>::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -224,7 +225,7 @@ pub fn decode_use_authority_record<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    UseAuthorityRecord::deserialize(&mut account_data.as_slice())
+    <UseAuthorityRecord as BorshDeserialize>::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -238,7 +239,7 @@ pub fn decode_metadata_delegate<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    MetadataDelegateRecord::deserialize(&mut account_data.as_slice())
+    <MetadataDelegateRecord as BorshDeserialize>::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -252,7 +253,7 @@ pub fn decode_token_record<P: ToPubkey>(
         .get_account_data(&pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    TokenRecord::deserialize(&mut account_data.as_slice())
+    <TokenRecord as BorshDeserialize>::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
 
@@ -271,6 +272,6 @@ pub fn decode_token_record_from_mint<P: ToPubkey>(
         .get_account_data(&token_record_pda)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    TokenRecord::deserialize(&mut account_data.as_slice())
+    <TokenRecord as BorshDeserialize>::deserialize(&mut account_data.as_slice())
         .map_err(|e| DecodeError::DeserializationFailed(e.to_string()))
 }
