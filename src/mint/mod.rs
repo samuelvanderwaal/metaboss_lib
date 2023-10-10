@@ -296,7 +296,7 @@ pub fn mint(
         .mint(mint.pubkey())
         .mint_authority(funder.pubkey())
         .payer(funder.pubkey())
-        .update_authority(funder.pubkey())
+        .update_authority(funder.pubkey(), true)
         .data(data)
         .is_mutable(!immutable)
         .system_program(system_program::ID)
