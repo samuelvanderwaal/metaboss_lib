@@ -69,6 +69,7 @@ pub enum MintAssetArgs<'a, P: ToPubkey> {
         payer: Option<&'a Keypair>,
         authority: &'a Keypair,
         receiver: P,
+        mint: Option<Keypair>,
         asset_data: AssetData,
         print_supply: Option<PrintSupply>,
         mint_decimals: Option<u8>,
@@ -93,6 +94,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         payer,
         authority,
         receiver,
+        mint,
         asset_data,
         print_supply,
         mint_decimals,
@@ -100,7 +102,12 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         authorization_data,
     } = args;
 
-    let mint_signer = Keypair::new();
+    let mint_signer = if let Some(mint) = mint {
+        mint
+    } else {
+        Keypair::new()
+    };
+
     let mut asset = Asset::new(mint_signer.pubkey());
     let receiver = receiver.to_pubkey()?;
 
