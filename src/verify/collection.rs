@@ -54,7 +54,7 @@ where
 
     let verify_ix = verify_collection_v1_ix(client, args)?;
 
-    send_and_confirm_tx(client, vec![authority], vec![verify_ix])
+    send_and_confirm_tx(client, &[authority], &[verify_ix])
 }
 
 fn verify_collection_v1_ix<P1, P2>(

@@ -94,5 +94,5 @@ where
 
     let burn_ix = burn_builder.instruction();
 
-    send_and_confirm_tx(client, vec![authority], vec![burn_ix])
+    send_and_confirm_tx(client, &[authority], &[burn_ix])
 }

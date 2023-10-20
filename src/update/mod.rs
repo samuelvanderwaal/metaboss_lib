@@ -131,7 +131,7 @@ where
 
     let update_ix = update_asset_v1_ix(client, args)?;
 
-    send_and_confirm_tx(client, vec![payer, authority], vec![update_ix])
+    send_and_confirm_tx(client, &[payer, authority], &[update_ix])
 }
 
 fn update_asset_v1_ix<P1, P2, P3>(

@@ -72,7 +72,7 @@ where
 
     let revoke_ix = revoke_asset_v1_ix(client, args)?;
 
-    send_and_confirm_tx(client, vec![payer, authority], vec![revoke_ix])
+    send_and_confirm_tx(client, &[payer, authority], &[revoke_ix])
 }
 
 fn revoke_asset_v1_ix<P1, P2, P3>(

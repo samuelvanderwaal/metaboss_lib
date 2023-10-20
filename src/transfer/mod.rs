@@ -113,5 +113,5 @@ fn transfer_asset_v1<P: ToPubkey>(
 
     let transfer_ix = transfer_builder.instruction();
 
-    send_and_confirm_tx(client, vec![payer, authority], vec![transfer_ix])
+    send_and_confirm_tx(client, &[payer, authority], &[transfer_ix])
 }

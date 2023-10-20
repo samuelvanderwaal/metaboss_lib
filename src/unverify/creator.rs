@@ -42,5 +42,5 @@ where
 
     let unverify_ix = unverify_builder.instruction();
 
-    send_and_confirm_tx(client, vec![authority], vec![unverify_ix])
+    send_and_confirm_tx(client, &[authority], &[unverify_ix])
 }

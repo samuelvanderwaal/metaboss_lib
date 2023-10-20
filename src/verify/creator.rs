@@ -40,5 +40,5 @@ where
 
     let verify_ix = verify_builder.instruction();
 
-    send_and_confirm_tx(client, vec![authority], vec![verify_ix])
+    send_and_confirm_tx(client, &[authority], &[verify_ix])
 }

@@ -195,8 +195,8 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
 
     let sig = send_and_confirm_tx(
         client,
-        vec![payer, authority, &mint_signer],
-        vec![create_ix, mint_ix],
+        &[payer, authority, &mint_signer],
+        &[create_ix, mint_ix],
     )?;
 
     Ok(MintResult {
@@ -321,7 +321,7 @@ pub fn mint(
         instructions.push(ix);
     }
 
-    let sig = send_and_confirm_tx(client, vec![&funder, &mint], instructions)?;
+    let sig = send_and_confirm_tx(client, &[&funder, &mint], &instructions)?;
 
     Ok((sig, mint.pubkey()))
 }

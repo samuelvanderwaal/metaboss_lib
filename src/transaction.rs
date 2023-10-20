@@ -11,9 +11,9 @@ use solana_sdk::{
 macro_rules! transaction {
     ($signers:expr, $instructions:expr, $client:expr) => {
         Transaction::new_signed_with_payer(
-            $instructions.as_slice(),
+            $instructions,
             Some(&$signers[0].pubkey()),
-            &$signers,
+            $signers,
             $client.get_latest_blockhash()?,
         )
     };
@@ -21,8 +21,8 @@ macro_rules! transaction {
 
 pub fn send_and_confirm_tx(
     client: &RpcClient,
-    signers: Vec<&Keypair>,
-    ixs: Vec<Instruction>,
+    signers: &[&Keypair],
+    ixs: &[Instruction],
 ) -> Result<Signature> {
     let tx = transaction!(signers, ixs, client);
 
@@ -33,8 +33,8 @@ pub fn send_and_confirm_tx(
 
 pub fn send_and_confirm_tx_with_retries(
     client: &RpcClient,
-    signers: Vec<&Keypair>,
-    ixs: Vec<Instruction>,
+    signers: &[&Keypair],
+    ixs: &[Instruction],
 ) -> Result<Signature> {
     let tx = transaction!(signers, ixs, client);
 
