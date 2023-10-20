@@ -5,16 +5,16 @@ use mpl_token_metadata::{
     instructions::RevokeStandardV1Builder,
     types::{MetadataDelegateRole, RevokeArgs, TokenStandard},
 };
-use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
 use solana_program::instruction::Instruction;
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
-    transaction::Transaction,
 };
 
-use crate::{data::Asset, decode::ToPubkey, nft::get_nft_token_account};
+use crate::{
+    data::Asset, decode::ToPubkey, nft::get_nft_token_account, transaction::send_and_confirm_tx,
+};
 
 pub enum RevokeAssetArgs<'a, P1, P2, P3: ToPubkey> {
     V1 {
@@ -72,21 +72,7 @@ where
 
     let revoke_ix = revoke_asset_v1_ix(client, args)?;
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[revoke_ix],
-        Some(&payer.pubkey()),
-        &[payer, authority],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-
-    Ok(res?)
+    send_and_confirm_tx(client, &[payer, authority], &[revoke_ix])
 }
 
 fn revoke_asset_v1_ix<P1, P2, P3>(

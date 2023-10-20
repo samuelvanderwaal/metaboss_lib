@@ -9,7 +9,6 @@ use mpl_token_metadata::{
     },
     ID,
 };
-use retry::{delay::Exponential, retry};
 use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_program::system_program;
@@ -18,7 +17,6 @@ use solana_sdk::{
     signature::Signature,
     signer::{keypair::Keypair, Signer},
     system_instruction::create_account,
-    transaction::Transaction,
 };
 use spl_associated_token_account::{
     get_associated_token_address, instruction::create_associated_token_account,
@@ -28,8 +26,8 @@ use spl_token::{
     ID as TOKEN_PROGRAM_ID,
 };
 
-use crate::convert::convert_local_to_remote_data;
 use crate::{constants::MINT_LAYOUT_SIZE, decode::ToPubkey};
+use crate::{convert::convert_local_to_remote_data, transaction::send_and_confirm_tx};
 use crate::{
     data::{Asset, NftData},
     derive::derive_token_record_pda,
@@ -195,20 +193,11 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
 
     let mint_ix = mint_builder.instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[create_ix, mint_ix],
-        Some(&payer.pubkey()),
+    let sig = send_and_confirm_tx(
+        client,
         &[payer, authority, &mint_signer],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-    let sig = res?;
+        &[create_ix, mint_ix],
+    )?;
 
     Ok(MintResult {
         signature: sig,
@@ -332,20 +321,7 @@ pub fn mint(
         instructions.push(ix);
     }
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &instructions,
-        Some(&funder.pubkey()),
-        &[&funder, &mint],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-    let sig = res?;
+    let sig = send_and_confirm_tx(client, &[&funder, &mint], &instructions)?;
 
     Ok((sig, mint.pubkey()))
 }

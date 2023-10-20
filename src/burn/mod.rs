@@ -1,17 +1,16 @@
 use anyhow::Result;
 use mpl_token_metadata::{instructions::BurnV1Builder, types::TokenStandard};
-use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
-    transaction::Transaction,
 };
 
 use crate::{
     data::Asset,
     decode::ToPubkey,
     derive::{derive_metadata_pda, derive_token_record_pda},
+    transaction::send_and_confirm_tx,
 };
 
 pub enum BurnAssetArgs<'a, P1, P2: ToPubkey> {
@@ -95,19 +94,5 @@ where
 
     let burn_ix = burn_builder.instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[burn_ix],
-        Some(&authority.pubkey()),
-        &[authority],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-
-    Ok(res?)
+    send_and_confirm_tx(client, &[authority], &[burn_ix])
 }

@@ -1,3 +1,5 @@
+use crate::transaction::send_and_confirm_tx;
+
 use super::*;
 
 pub enum VerifyCreatorArgs<'a, P1: ToPubkey> {
@@ -38,19 +40,5 @@ where
 
     let verify_ix = verify_builder.instruction();
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[verify_ix],
-        Some(&authority.pubkey()),
-        &[authority],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-
-    Ok(res?)
+    send_and_confirm_tx(client, &[authority], &[verify_ix])
 }
