@@ -3,6 +3,8 @@ use mpl_token_metadata::{
 };
 use solana_program::instruction::Instruction;
 
+use crate::transaction::send_and_confirm_tx;
+
 use super::*;
 
 pub enum VerifyCollectionArgs<'a, P1: ToPubkey, P2: ToPubkey> {
@@ -52,21 +54,7 @@ where
 
     let verify_ix = verify_collection_v1_ix(client, args)?;
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[verify_ix],
-        Some(&authority.pubkey()),
-        &[authority],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-
-    Ok(res?)
+    send_and_confirm_tx(client, vec![authority], vec![verify_ix])
 }
 
 fn verify_collection_v1_ix<P1, P2>(
