@@ -10,6 +10,7 @@ pub mod mint;
 pub mod nft;
 pub mod revoke;
 pub mod snapshot;
+pub mod transaction;
 pub mod transfer;
 pub mod unverify;
 pub mod update;

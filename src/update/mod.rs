@@ -6,16 +6,16 @@ use mpl_token_metadata::{
         RuleSetToggle, TokenStandard, UsesToggle,
     },
 };
-use retry::{delay::Exponential, retry};
 use solana_client::rpc_client::RpcClient;
 use solana_program::{instruction::Instruction, pubkey::Pubkey};
 use solana_sdk::{
     signature::{Keypair, Signature},
     signer::Signer,
-    transaction::Transaction,
 };
 
-use crate::{data::Asset, decode::ToPubkey, nft::get_nft_token_account};
+use crate::{
+    data::Asset, decode::ToPubkey, nft::get_nft_token_account, transaction::send_and_confirm_tx,
+};
 
 // Wrapper type for the UpdateV1InstructionArgs type from mpl-token-metadata since it doesn't have a `default` implementation.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -131,21 +131,7 @@ where
 
     let update_ix = update_asset_v1_ix(client, args)?;
 
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &[update_ix],
-        Some(&payer.pubkey()),
-        &[payer, authority],
-        recent_blockhash,
-    );
-
-    // Send tx with retries.
-    let res = retry(
-        Exponential::from_millis_with_factor(250, 2.0).take(3),
-        || client.send_and_confirm_transaction(&tx),
-    );
-
-    Ok(res?)
+    send_and_confirm_tx(client, vec![payer, authority], vec![update_ix])
 }
 
 fn update_asset_v1_ix<P1, P2, P3>(
