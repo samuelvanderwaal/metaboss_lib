@@ -10,7 +10,6 @@ use solana_sdk::{
     commitment_config::{CommitmentConfig, CommitmentLevel},
     pubkey::Pubkey,
 };
-use std::str::FromStr;
 
 pub mod errors;
 
@@ -87,15 +86,6 @@ pub fn get_holder_token_accounts(
     client: &RpcClient,
     mint_account: String,
 ) -> Result<Vec<(Pubkey, Account)>, SnapshotError> {
-    let token_program_id = match Pubkey::from_str(TOKEN_PROGRAM_ID) {
-        Ok(token_program_id) => token_program_id,
-        Err(_) => {
-            return Err(SnapshotError::PubkeyParseFailed(
-                TOKEN_PROGRAM_ID.to_string(),
-            ))
-        }
-    };
-
     #[allow(deprecated)]
     let filter1 = RpcFilterType::Memcmp(Memcmp {
         offset: 0,
@@ -118,7 +108,8 @@ pub fn get_holder_token_accounts(
         with_context: None,
     };
 
-    let holders = match client.get_program_accounts_with_config(&token_program_id, config) {
+    let holders = match client.get_program_accounts_with_config(&TOKEN_METADATA_PROGRAM_ID, config)
+    {
         Ok(accounts) => accounts,
         Err(err) => return Err(SnapshotError::ClientError(err.kind)),
     };
