@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use mpl_token_metadata::{
     accounts::{MetadataDelegateRecord, TokenRecord},
     hooked::MetadataDelegateRoleSeed,
@@ -13,7 +13,8 @@ use solana_sdk::{
 };
 
 use crate::{
-    data::Asset, decode::ToPubkey, nft::get_nft_token_account, transaction::send_and_confirm_tx,
+    constants::SPL_TOKEN_PROGRAM_ID, data::Asset, decode::ToPubkey, nft::get_nft_token_account,
+    transaction::send_and_confirm_tx,
 };
 
 pub enum RevokeAssetArgs<'a, P1, P2, P3: ToPubkey> {
@@ -98,26 +99,25 @@ where
     let mint = mint.to_pubkey()?;
     let mut asset = Asset::new(mint);
 
+    let token = if let Some(t) = token {
+        t.to_pubkey()?
+    } else {
+        get_nft_token_account(client, &mint.to_string())?
+    };
+
     let md = asset.get_metadata(client)?;
 
     let delegate = delegate.to_pubkey()?;
-    let token = token.map(|t| t.to_pubkey()).transpose()?;
-
-    // We need the token account passed in for pNFT updates.
-    let token =
-        if md.token_standard == Some(TokenStandard::ProgrammableNonFungible) && token.is_none() {
-            Some(get_nft_token_account(client, &mint.to_string())?)
-        } else {
-            None
-        };
 
     let mut revoke_builder = RevokeStandardV1Builder::new();
     revoke_builder
         .delegate(delegate)
         .mint(mint)
+        .token(token)
         .metadata(asset.metadata)
         .payer(payer.pubkey())
-        .authority(authority.pubkey());
+        .authority(authority.pubkey())
+        .spl_token_program(Some(SPL_TOKEN_PROGRAM_ID));
 
     match revoke_args {
         RevokeArgs::SaleV1 { .. }
@@ -126,7 +126,6 @@ where
         | RevokeArgs::StakingV1 { .. }
         | RevokeArgs::LockedTransferV1 { .. }
         | RevokeArgs::MigrationV1 => {
-            let token = token.ok_or(anyhow!("Missing required token account"))?;
             let (token_record, _) = TokenRecord::find_pda(&mint, &token);
             revoke_builder.token_record(Some(token_record));
         }
