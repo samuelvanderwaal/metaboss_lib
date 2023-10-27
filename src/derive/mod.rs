@@ -1,4 +1,4 @@
-use mpl_token_metadata::ID;
+use mpl_token_metadata::{types::MetadataDelegateRole, ID};
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
 
@@ -71,6 +71,46 @@ pub fn derive_token_record_pda(mint: &Pubkey, token: &Pubkey) -> Pubkey {
             mint.as_ref(),
             TOKEN_RECORD_SEED.as_bytes(),
             token.as_ref(),
+        ],
+        &mpl_token_metadata::ID,
+    );
+
+    pda
+}
+
+pub fn derive_collection_delegate_pda(
+    mint: &Pubkey,
+    delegate: &Pubkey,
+    authority: &Pubkey,
+) -> Pubkey {
+    let (pda, _bump) = Pubkey::find_program_address(
+        &[
+            METADATA_PREFIX.as_bytes(),
+            mpl_token_metadata::ID.as_ref(),
+            mint.as_ref(),
+            MetadataDelegateRole::Collection.to_string().as_bytes(),
+            authority.as_ref(),
+            delegate.as_ref(),
+        ],
+        &mpl_token_metadata::ID,
+    );
+
+    pda
+}
+
+pub fn derive_collection_item_delegate_pda(
+    mint: &Pubkey,
+    delegate: &Pubkey,
+    authority: &Pubkey,
+) -> Pubkey {
+    let (pda, _bump) = Pubkey::find_program_address(
+        &[
+            METADATA_PREFIX.as_bytes(),
+            mpl_token_metadata::ID.as_ref(),
+            mint.as_ref(),
+            MetadataDelegateRole::CollectionItem.to_string().as_bytes(),
+            authority.as_ref(),
+            delegate.as_ref(),
         ],
         &mpl_token_metadata::ID,
     );
