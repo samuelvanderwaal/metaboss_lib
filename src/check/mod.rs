@@ -43,8 +43,8 @@ impl FromStr for MetadataValue {
                     .map(|c| {
                         let mut split = c.split(':');
                         let address = split.next().unwrap().to_pubkey()?;
-                        let verified = split.next().unwrap().parse::<bool>()?;
                         let share = split.next().unwrap().parse::<u8>()?;
+                        let verified = split.next().unwrap().parse::<bool>()?;
 
                         Ok(Creator {
                             address,
