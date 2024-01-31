@@ -43,7 +43,7 @@ pub fn decode_metadata(client: &RpcClient, pubkey: &Pubkey) -> Result<Metadata, 
         .get_account_data(pubkey)
         .map_err(|e| DecodeError::ClientError(e.kind))?;
 
-    <Metadata as BorshDeserialize>::deserialize(&mut account_data.as_ref())
+    Metadata::safe_deserialize(&mut account_data.as_ref())
         .map_err(|e| DecodeError::DecodeMetadataFailed(e.to_string()))
 }
 
