@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 use anyhow::Result;
 use mpl_token_metadata::{
     accounts::Metadata,
@@ -124,4 +126,19 @@ pub struct UpdateUriData {
 pub struct NewUri {
     mint_account: String,
     new_uri: String,
+}
+
+pub type ComputeUnits = u32;
+pub type FeeMicroLamports = u64;
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct PriorityFee {
+    pub compute: ComputeUnits,
+    pub fee: FeeMicroLamports,
+}
+
+impl Display for PriorityFee {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "compute: {}, fee: {}", self.compute, self.fee)
+    }
 }
