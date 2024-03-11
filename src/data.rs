@@ -3,7 +3,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use mpl_token_metadata::{
     accounts::Metadata,
     types::{Data, DataV2},
@@ -157,19 +157,6 @@ pub enum Priority {
     Max,
 }
 
-impl From<String> for Priority {
-    fn from(s: String) -> Self {
-        match s.to_lowercase().as_str() {
-            "none" => Self::None,
-            "low" => Self::Low,
-            "medium" => Self::Medium,
-            "high" => Self::High,
-            "max" => Self::Max,
-            _ => Self::None,
-        }
-    }
-}
-
 impl FromStr for Priority {
     type Err = anyhow::Error;
 
@@ -180,7 +167,7 @@ impl FromStr for Priority {
             "medium" => Ok(Self::Medium),
             "high" => Ok(Self::High),
             "max" => Ok(Self::Max),
-            _ => Ok(Self::None),
+            _ => Err(anyhow!("Invalid priority".to_string())),
         }
     }
 }
