@@ -171,7 +171,7 @@ impl From<String> for Priority {
 }
 
 impl FromStr for Priority {
-    type Err = ();
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
