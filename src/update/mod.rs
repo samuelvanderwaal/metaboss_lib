@@ -9,12 +9,16 @@ use mpl_token_metadata::{
 use solana_client::rpc_client::RpcClient;
 use solana_program::{instruction::Instruction, pubkey::Pubkey};
 use solana_sdk::{
+    compute_budget::ComputeBudgetInstruction,
     signature::{Keypair, Signature},
     signer::Signer,
 };
 
 use crate::{
-    data::Asset, decode::ToPubkey, nft::get_nft_token_account, transaction::send_and_confirm_tx,
+    data::{Asset, Priority, UPDATE_COMPUTE_UNITS},
+    decode::ToPubkey,
+    nft::get_nft_token_account,
+    transaction::send_and_confirm_tx,
 };
 
 // Wrapper type for the UpdateV1InstructionArgs type from mpl-token-metadata since it doesn't have a `default` implementation.
@@ -83,6 +87,7 @@ pub enum UpdateAssetArgs<'a, P1, P2, P3: ToPubkey> {
         token: Option<P2>,
         delegate_record: Option<P3>,
         update_args: V1UpdateArgs,
+        priority: Priority,
     },
 }
 
@@ -124,14 +129,29 @@ where
     P3: ToPubkey,
 {
     let UpdateAssetArgs::V1 {
-        payer, authority, ..
+        payer,
+        authority,
+        ref priority,
+        ..
     } = args;
 
     let payer = payer.unwrap_or(authority);
 
-    let update_ix = update_asset_v1_ix(client, args)?;
+    let micro_lamports = match priority {
+        Priority::None => 20,        // 1       lamports
+        Priority::Low => 20_000,     // 1_000   lamports  ~$1 for 10k updates
+        Priority::Medium => 200_000, // 10_000  lamports  ~$10 for 10k updates
+        Priority::High => 1_000_000, // 50_000  lamports  ~$0.01/update @ $150 SOL
+        Priority::Max => 2_000_000,  // 100_000 lamports  ~$0.02/update @ $150 SOL
+    };
 
-    send_and_confirm_tx(client, &[payer, authority], &[update_ix])
+    let instructions = vec![
+        ComputeBudgetInstruction::set_compute_unit_limit(UPDATE_COMPUTE_UNITS),
+        ComputeBudgetInstruction::set_compute_unit_price(micro_lamports),
+        update_asset_v1_ix(client, args)?,
+    ];
+
+    send_and_confirm_tx(client, &[payer, authority], &instructions)
 }
 
 fn update_asset_v1_ix<P1, P2, P3>(
@@ -150,6 +170,7 @@ where
         token,
         delegate_record,
         update_args,
+        ..
     } = args;
 
     let payer = payer.unwrap_or(authority);
