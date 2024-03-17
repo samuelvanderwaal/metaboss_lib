@@ -18,7 +18,7 @@ use crate::{
     data::{Asset, Priority, UPDATE_COMPUTE_UNITS},
     decode::ToPubkey,
     nft::get_nft_token_account,
-    transaction::send_and_confirm_tx,
+    transaction::{get_compute_units, send_and_confirm_tx},
 };
 
 // Wrapper type for the UpdateV1InstructionArgs type from mpl-token-metadata since it doesn't have a `default` implementation.
@@ -145,13 +145,19 @@ where
         Priority::Max => 2_000_000,  // 100_000 lamports  ~$0.02/update @ $150 SOL
     };
 
+    let signers = vec![payer, authority];
+
+    let update_ix = update_asset_v1_ix(client, args)?;
+    let units = get_compute_units(client, &[update_ix.clone()], &signers)?
+        .unwrap_or(UPDATE_COMPUTE_UNITS as u64);
+
     let instructions = vec![
-        ComputeBudgetInstruction::set_compute_unit_limit(UPDATE_COMPUTE_UNITS),
+        ComputeBudgetInstruction::set_compute_unit_limit(units as u32),
         ComputeBudgetInstruction::set_compute_unit_price(micro_lamports),
-        update_asset_v1_ix(client, args)?,
+        update_ix,
     ];
 
-    send_and_confirm_tx(client, &[payer, authority], &instructions)
+    send_and_confirm_tx(client, &signers, &instructions)
 }
 
 fn update_asset_v1_ix<P1, P2, P3>(
