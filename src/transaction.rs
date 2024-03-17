@@ -1,8 +1,11 @@
 use anyhow::Result;
 use retry::{delay::Exponential, retry};
-use solana_client::rpc_client::RpcClient;
+use solana_client::{rpc_client::RpcClient, rpc_config::RpcSimulateTransactionConfig};
 use solana_program::instruction::Instruction;
 use solana_sdk::{
+    commitment_config::CommitmentConfig,
+    hash::Hash,
+    pubkey::Pubkey,
     signature::{Keypair, Signature},
     signer::Signer,
     transaction::Transaction,
@@ -45,4 +48,32 @@ pub fn send_and_confirm_tx_with_retries(
     )?;
 
     Ok(res)
+}
+
+pub fn get_compute_units(
+    client: &RpcClient,
+    ixs: &[Instruction],
+    signers: &[&Keypair],
+) -> Result<Option<u64>> {
+    let config = RpcSimulateTransactionConfig {
+        sig_verify: false,
+        replace_recent_blockhash: true,
+        commitment: Some(CommitmentConfig::confirmed()),
+        ..Default::default()
+    };
+
+    let tx = Transaction::new_signed_with_payer(
+        ixs,
+        Some(&signers[0].pubkey()),
+        signers,
+        Hash::new(Pubkey::default().as_ref()), // dummy value
+    );
+
+    let maybe_units = client
+        .simulate_transaction_with_config(&tx, config)?
+        .value
+        .units_consumed
+        .map(|units| (units as f64 * 1.10) as u64);
+
+    Ok(maybe_units)
 }
