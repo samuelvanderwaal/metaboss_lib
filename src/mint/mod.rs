@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_program::system_program;
 use solana_sdk::{
+    compute_budget::ComputeBudgetInstruction,
     pubkey::Pubkey,
     signature::Signature,
     signer::{keypair::Keypair, Signer},
@@ -26,7 +27,9 @@ use spl_token::{
     ID as TOKEN_PROGRAM_ID,
 };
 
-use crate::{constants::MINT_LAYOUT_SIZE, decode::ToPubkey};
+use crate::{
+    constants::MINT_LAYOUT_SIZE, data::Priority, decode::ToPubkey, transaction::get_compute_units,
+};
 use crate::{convert::convert_local_to_remote_data, transaction::send_and_confirm_tx};
 use crate::{
     data::{Asset, NftData},
@@ -73,6 +76,7 @@ pub enum MintAssetArgs<'a, P: ToPubkey> {
         mint_decimals: Option<u8>,
         amount: u64,
         authorization_data: Option<AuthorizationData>,
+        priority: Priority,
     },
 }
 
@@ -98,6 +102,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         mint_decimals,
         amount,
         authorization_data,
+        priority,
     } = args;
 
     let mint_signer = if let Some(mint) = mint {
@@ -200,11 +205,26 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
 
     let mint_ix = mint_builder.instruction();
 
-    let sig = send_and_confirm_tx(
-        client,
-        &[payer, authority, &mint_signer],
-        &[create_ix, mint_ix],
-    )?;
+    let instructions = vec![create_ix, mint_ix];
+
+    let micro_lamports = match priority {
+        Priority::None => 20,        // 1       lamports
+        Priority::Low => 20_000,     // 1_000   lamports  ~$1 for 10k updates
+        Priority::Medium => 200_000, // 10_000  lamports  ~$10 for 10k updates
+        Priority::High => 1_000_000, // 50_000  lamports  ~$0.01/update @ $150 SOL
+        Priority::Max => 2_000_000,  // 100_000 lamports  ~$0.02/update @ $150 SOL
+    };
+
+    let signers = vec![payer, authority, &mint_signer];
+
+    let units = get_compute_units(client, &instructions, &signers)?.unwrap_or(200_000);
+    let mut final_instructions = vec![
+        ComputeBudgetInstruction::set_compute_unit_limit(units as u32),
+        ComputeBudgetInstruction::set_compute_unit_price(micro_lamports),
+    ];
+    final_instructions.extend(instructions);
+
+    let sig = send_and_confirm_tx(client, &signers, &final_instructions)?;
 
     Ok(MintResult {
         signature: sig,
