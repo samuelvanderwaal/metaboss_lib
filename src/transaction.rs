@@ -69,11 +69,20 @@ pub fn get_compute_units(
         Hash::new(Pubkey::default().as_ref()), // dummy value
     );
 
-    let maybe_units = client
-        .simulate_transaction_with_config(&tx, config)?
+    // This doesn't return an error if the simulation fails
+    let sim_result = client.simulate_transaction_with_config(&tx, config)?;
+
+    // it sets the error Option on the value in the Ok variant, so we check here
+    // and return the error manually.
+    if let Some(err) = sim_result.value.err {
+        return Err(err.into());
+    }
+
+    // Otherwise, we can get the compute units from the simulation result
+    let units = sim_result
         .value
         .units_consumed
-        .map(|units| (units as f64 * 1.10) as u64);
+        .map(|units| (units as f64 * 1.20) as u64);
 
-    Ok(maybe_units)
+    Ok(units)
 }
