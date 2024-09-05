@@ -147,6 +147,7 @@ where
         | DelegateArgs::TransferV1 { .. }
         | DelegateArgs::UtilityV1 { .. }
         | DelegateArgs::StakingV1 { .. }
+        | DelegateArgs::PrintDelegateV1 { .. }
         | DelegateArgs::LockedTransferV1 { .. } => {
             let (token_record, _) = TokenRecord::find_pda(&mint, &token);
             delegate_accounts.token_record = Some(token_record);

@@ -147,6 +147,7 @@ where
         | RevokeArgs::UtilityV1 { .. }
         | RevokeArgs::StakingV1 { .. }
         | RevokeArgs::LockedTransferV1 { .. }
+        | RevokeArgs::PrintDelegateV1 { .. }
         | RevokeArgs::MigrationV1 => {
             let (token_record, _) = TokenRecord::find_pda(&mint, &token);
             revoke_accounts.token_record = Some(token_record);

@@ -137,7 +137,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         .seller_fee_basis_points(asset_data.seller_fee_basis_points)
         .primary_sale_happened(asset_data.primary_sale_happened)
         .is_mutable(asset_data.is_mutable)
-        .token_standard(token_standard.clone())
+        .token_standard(token_standard)
         .system_program(system_program::ID);
 
     if let Some(creators) = asset_data.creators {

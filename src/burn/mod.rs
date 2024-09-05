@@ -65,6 +65,7 @@ where
             TokenStandard::NonFungible
                 | TokenStandard::NonFungibleEdition
                 | TokenStandard::ProgrammableNonFungible
+                | TokenStandard::ProgrammableNonFungibleEdition
         ) | None
     ) {
         // NonFungible types need an edition
@@ -72,7 +73,10 @@ where
         burn_builder.edition(asset.edition);
 
         // pNFTs additionally need a token record.
-        let token_record = if let Some(TokenStandard::ProgrammableNonFungible) = md.token_standard {
+        let token_record = if let Some(
+            TokenStandard::ProgrammableNonFungible | TokenStandard::ProgrammableNonFungibleEdition,
+        ) = md.token_standard
+        {
             Some(derive_token_record_pda(&mint, &token))
         } else {
             None
