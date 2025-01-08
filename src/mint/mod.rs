@@ -26,6 +26,7 @@ use spl_token::{
     instruction::{initialize_mint, mint_to},
     ID as TOKEN_PROGRAM_ID,
 };
+use std::str::FromStr;
 
 use crate::{
     constants::MINT_LAYOUT_SIZE, data::Priority, decode::ToPubkey, transaction::get_compute_units,
@@ -62,7 +63,7 @@ pub struct AssetData {
     /// Collection item details.
     pub collection_details: Option<CollectionDetails>,
     /// Programmable rule set for the asset.
-    pub rule_set: Option<Pubkey>,
+    pub rule_set: Option<String>,
 }
 
 pub enum MintAssetArgs<'a, P: ToPubkey> {
@@ -138,7 +139,8 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         .primary_sale_happened(asset_data.primary_sale_happened)
         .is_mutable(asset_data.is_mutable)
         .token_standard(token_standard)
-        .system_program(system_program::ID);
+        .system_program(system_program::ID)
+        .spl_token_program(Some(spl_token::ID));
 
     if let Some(creators) = asset_data.creators {
         create_builder.creators(creators);
@@ -157,7 +159,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
     }
 
     if let Some(rule_set) = asset_data.rule_set {
-        create_builder.rule_set(rule_set);
+        create_builder.rule_set(Pubkey::from_str(&rule_set)?);
     }
 
     if let Some(decimals) = mint_decimals {
