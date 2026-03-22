@@ -42,7 +42,7 @@ pub fn get_metadata_accounts_by_update_authority(
     let accounts = match client.get_program_accounts_with_config(&TOKEN_METADATA_PROGRAM_ID, config)
     {
         Ok(accounts) => accounts,
-        Err(err) => return Err(SnapshotError::ClientError(err.kind)),
+        Err(err) => return Err(SnapshotError::ClientError(Box::new(err.kind))),
     };
 
     Ok(accounts)
@@ -76,7 +76,7 @@ pub fn get_metadata_accounts_by_creator(
     let accounts = match client.get_program_accounts_with_config(&TOKEN_METADATA_PROGRAM_ID, config)
     {
         Ok(accounts) => accounts,
-        Err(err) => return Err(SnapshotError::ClientError(err.kind)),
+        Err(err) => return Err(SnapshotError::ClientError(Box::new(err.kind))),
     };
 
     Ok(accounts)
@@ -111,7 +111,7 @@ pub fn get_holder_token_accounts(
     let holders = match client.get_program_accounts_with_config(&TOKEN_METADATA_PROGRAM_ID, config)
     {
         Ok(accounts) => accounts,
-        Err(err) => return Err(SnapshotError::ClientError(err.kind)),
+        Err(err) => return Err(SnapshotError::ClientError(Box::new(err.kind))),
     };
 
     Ok(holders)
@@ -151,7 +151,7 @@ pub fn get_edition_accounts_by_master(
     let accounts = match client.get_program_accounts_with_config(&TOKEN_METADATA_PROGRAM_ID, config)
     {
         Ok(accounts) => accounts,
-        Err(err) => return Err(SnapshotError::ClientError(err.kind)),
+        Err(err) => return Err(SnapshotError::ClientError(Box::new(err.kind))),
     };
 
     Ok(accounts)
