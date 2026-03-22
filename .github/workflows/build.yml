@@ -25,6 +25,13 @@ jobs:
       - name: Install Rust 1.94
         uses: dtolnay/rust-toolchain@1.94
 
+      - name: Install OpenSSL (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install openssl -y
+          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $GITHUB_ENV
+        shell: bash
+
       - name: Build
         id: build
         shell: bash
