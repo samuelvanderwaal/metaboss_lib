@@ -25,17 +25,13 @@ jobs:
       - name: Install Rust 1.94
         uses: dtolnay/rust-toolchain@1.94
 
-      - name: Install Perl (Windows)
+      - name: Install Strawberry Perl (Windows)
         if: runner.os == 'Windows'
-        uses: shogo82148/actions-setup-perl@v1
-        with:
-          perl-version: '5.38'
+        run: choco install strawberryperl -y
 
       - name: Build
         id: build
         shell: bash
-        env:
-          OPENSSL_STATIC: '1'
         run: |
           cargo build --all --release
       - name: Release Tags
