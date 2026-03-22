@@ -179,3 +179,327 @@ fn token_standard_to_string(token_standard: &TokenStandard) -> String {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mpl_token_metadata::accounts::Metadata;
+    use mpl_token_metadata::types::{Collection, Key, ProgrammableConfig, TokenStandard};
+    use solana_sdk::pubkey::Pubkey;
+
+    fn make_test_metadata() -> Metadata {
+        Metadata {
+            key: Key::MetadataV1,
+            update_authority: Pubkey::default(),
+            mint: Pubkey::default(),
+            name: String::from("Test NFT"),
+            symbol: String::from("TEST"),
+            uri: String::from("https://example.com"),
+            seller_fee_basis_points: 500,
+            creators: None,
+            primary_sale_happened: false,
+            is_mutable: true,
+            edition_nonce: None,
+            token_standard: None,
+            collection: None,
+            uses: None,
+            collection_details: None,
+            programmable_config: None,
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // MetadataValue::from_str tests
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn parse_name() {
+        let v = MetadataValue::from_str("name=My NFT").unwrap();
+        assert!(matches!(v, MetadataValue::Name(ref s) if s == "My NFT"));
+    }
+
+    #[test]
+    fn parse_symbol() {
+        let v = MetadataValue::from_str("symbol=SYM").unwrap();
+        assert!(matches!(v, MetadataValue::Symbol(ref s) if s == "SYM"));
+    }
+
+    #[test]
+    fn parse_uri() {
+        let v = MetadataValue::from_str("uri=https://example.com").unwrap();
+        assert!(matches!(v, MetadataValue::Uri(ref s) if s == "https://example.com"));
+    }
+
+    #[test]
+    fn parse_sfbp() {
+        let v = MetadataValue::from_str("sfbp=500").unwrap();
+        assert!(matches!(v, MetadataValue::SellerFeeBasisPoints(500)));
+    }
+
+    #[test]
+    fn parse_creators() {
+        let v =
+            MetadataValue::from_str("creators=11111111111111111111111111111111:50:true").unwrap();
+        match v {
+            MetadataValue::Creators(ref creators) => {
+                assert_eq!(creators.len(), 1);
+                assert_eq!(creators[0].address, Pubkey::default());
+                assert_eq!(creators[0].share, 50);
+                assert!(creators[0].verified);
+            }
+            _ => panic!("Expected Creators variant"),
+        }
+    }
+
+    #[test]
+    fn parse_update_authority() {
+        let v =
+            MetadataValue::from_str("update_authority=11111111111111111111111111111111").unwrap();
+        assert!(
+            matches!(v, MetadataValue::UpdateAuthority(ref s) if s == "11111111111111111111111111111111")
+        );
+    }
+
+    #[test]
+    fn parse_primary_sale_happened() {
+        let v = MetadataValue::from_str("primary_sale_happened=true").unwrap();
+        assert!(matches!(v, MetadataValue::PrimarySaleHappened(true)));
+    }
+
+    #[test]
+    fn parse_is_mutable() {
+        let v = MetadataValue::from_str("is_mutable=false").unwrap();
+        assert!(matches!(v, MetadataValue::IsMutable(false)));
+    }
+
+    #[test]
+    fn parse_token_standard() {
+        let v = MetadataValue::from_str("token_standard=nonfungible").unwrap();
+        assert!(matches!(v, MetadataValue::TokenStandard(ref s) if s == "nonfungible"));
+    }
+
+    #[test]
+    fn parse_collection_parent() {
+        let v =
+            MetadataValue::from_str("collection_parent=11111111111111111111111111111111").unwrap();
+        assert!(
+            matches!(v, MetadataValue::CollectionParent(ref s) if s == "11111111111111111111111111111111")
+        );
+    }
+
+    #[test]
+    fn parse_collection_verified() {
+        let v = MetadataValue::from_str("collection_verified=true").unwrap();
+        assert!(matches!(v, MetadataValue::CollectionVerified(true)));
+    }
+
+    #[test]
+    fn parse_rule_set() {
+        let v = MetadataValue::from_str("rule_set=11111111111111111111111111111111").unwrap();
+        assert!(
+            matches!(v, MetadataValue::RuleSet(ref s) if s == "11111111111111111111111111111111")
+        );
+    }
+
+    #[test]
+    fn parse_invalid_key_returns_error() {
+        let result = MetadataValue::from_str("bad_key=whatever");
+        assert!(result.is_err());
+    }
+
+    // ---------------------------------------------------------------
+    // MetadataValue::Display tests
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn display_name() {
+        let v = MetadataValue::Name("My NFT".to_string());
+        assert_eq!(v.to_string(), "name=My NFT");
+    }
+
+    #[test]
+    fn display_sfbp() {
+        let v = MetadataValue::SellerFeeBasisPoints(500);
+        assert_eq!(v.to_string(), "sfbp=500");
+    }
+
+    #[test]
+    fn display_is_mutable() {
+        let v = MetadataValue::IsMutable(true);
+        assert_eq!(v.to_string(), "is_mutable=true");
+    }
+
+    #[test]
+    fn display_round_trip_name() {
+        let original = "name=My NFT";
+        let parsed = MetadataValue::from_str(original).unwrap();
+        assert_eq!(parsed.to_string(), original);
+    }
+
+    #[test]
+    fn display_round_trip_sfbp() {
+        let original = "sfbp=500";
+        let parsed = MetadataValue::from_str(original).unwrap();
+        assert_eq!(parsed.to_string(), original);
+    }
+
+    #[test]
+    fn display_round_trip_is_mutable() {
+        let original = "is_mutable=false";
+        let parsed = MetadataValue::from_str(original).unwrap();
+        assert_eq!(parsed.to_string(), original);
+    }
+
+    // ---------------------------------------------------------------
+    // check_metadata_value tests
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn check_name_matches() {
+        let md = make_test_metadata();
+        let v = MetadataValue::Name("Test NFT".to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_name_with_null_bytes() {
+        let mut md = make_test_metadata();
+        md.name = "Test NFT\0\0\0".to_string();
+        let v = MetadataValue::Name("Test NFT".to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_name_mismatch() {
+        let md = make_test_metadata();
+        let v = MetadataValue::Name("Other".to_string());
+        assert!(!check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_symbol_matches() {
+        let md = make_test_metadata();
+        let v = MetadataValue::Symbol("TEST".to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_uri_matches() {
+        let md = make_test_metadata();
+        let v = MetadataValue::Uri("https://example.com".to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_sfbp_matches() {
+        let md = make_test_metadata();
+        let v = MetadataValue::SellerFeeBasisPoints(500);
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_sfbp_mismatch() {
+        let md = make_test_metadata();
+        let v = MetadataValue::SellerFeeBasisPoints(1000);
+        assert!(!check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_is_mutable_matches() {
+        let md = make_test_metadata();
+        let v = MetadataValue::IsMutable(true);
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_is_mutable_mismatch() {
+        let md = make_test_metadata();
+        let v = MetadataValue::IsMutable(false);
+        assert!(!check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_primary_sale_happened_matches() {
+        let md = make_test_metadata();
+        let v = MetadataValue::PrimarySaleHappened(false);
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_update_authority_matches() {
+        let md = make_test_metadata();
+        let v = MetadataValue::UpdateAuthority(Pubkey::default().to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_token_standard_matches() {
+        let mut md = make_test_metadata();
+        md.token_standard = Some(TokenStandard::NonFungible);
+        let v = MetadataValue::TokenStandard("nonfungible".to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_token_standard_none_returns_false() {
+        let md = make_test_metadata();
+        let v = MetadataValue::TokenStandard("nonfungible".to_string());
+        assert!(!check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_collection_parent_matches() {
+        let pubkey = Pubkey::default();
+        let mut md = make_test_metadata();
+        md.collection = Some(Collection {
+            verified: true,
+            key: pubkey,
+        });
+        let v = MetadataValue::CollectionParent(pubkey.to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_collection_verified_matches() {
+        let mut md = make_test_metadata();
+        md.collection = Some(Collection {
+            verified: true,
+            key: Pubkey::default(),
+        });
+        let v = MetadataValue::CollectionVerified(true);
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_collection_verified_no_collection() {
+        let md = make_test_metadata();
+        let v = MetadataValue::CollectionVerified(true);
+        assert!(!check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_rule_set_matches() {
+        let pubkey = Pubkey::default();
+        let mut md = make_test_metadata();
+        md.programmable_config = Some(ProgrammableConfig::V1 {
+            rule_set: Some(pubkey),
+        });
+        let v = MetadataValue::RuleSet(pubkey.to_string());
+        assert!(check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_rule_set_none_config() {
+        let md = make_test_metadata();
+        let v = MetadataValue::RuleSet(Pubkey::default().to_string());
+        assert!(!check_metadata_value(&md, &v));
+    }
+
+    #[test]
+    fn check_rule_set_none_rule_set() {
+        let mut md = make_test_metadata();
+        md.programmable_config = Some(ProgrammableConfig::V1 { rule_set: None });
+        let v = MetadataValue::RuleSet(Pubkey::default().to_string());
+        assert!(!check_metadata_value(&md, &v));
+    }
+}

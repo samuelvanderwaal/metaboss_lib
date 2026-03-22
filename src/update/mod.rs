@@ -237,3 +237,44 @@ where
 
     Ok(update_ix)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_v1_update_args_default() {
+        let args = V1UpdateArgs::default();
+
+        assert_eq!(args.new_update_authority, None);
+        assert_eq!(args.data, None);
+        assert_eq!(args.primary_sale_happened, None);
+        assert_eq!(args.is_mutable, None);
+        assert_eq!(args.collection, CollectionToggle::None);
+        assert_eq!(args.collection_details, CollectionDetailsToggle::None);
+        assert_eq!(args.uses, UsesToggle::None);
+        assert_eq!(args.rule_set, RuleSetToggle::None);
+        assert_eq!(args.authorization_data, None);
+    }
+
+    #[test]
+    fn test_v1_update_args_into_instruction_args() {
+        let args = V1UpdateArgs {
+            is_mutable: Some(false),
+            primary_sale_happened: Some(true),
+            ..V1UpdateArgs::default()
+        };
+
+        let ix_args: UpdateV1InstructionArgs = args.into();
+
+        assert_eq!(ix_args.is_mutable, Some(false));
+        assert_eq!(ix_args.primary_sale_happened, Some(true));
+        assert_eq!(ix_args.new_update_authority, None);
+        assert_eq!(ix_args.data, None);
+        assert_eq!(ix_args.collection, CollectionToggle::None);
+        assert_eq!(ix_args.collection_details, CollectionDetailsToggle::None);
+        assert_eq!(ix_args.uses, UsesToggle::None);
+        assert_eq!(ix_args.rule_set, RuleSetToggle::None);
+        assert_eq!(ix_args.authorization_data, None);
+    }
+}
