@@ -142,17 +142,17 @@ where
     };
 
     match revoke_args {
-        RevokeArgs::SaleV1 { .. }
-        | RevokeArgs::TransferV1 { .. }
-        | RevokeArgs::UtilityV1 { .. }
-        | RevokeArgs::StakingV1 { .. }
-        | RevokeArgs::LockedTransferV1 { .. }
-        | RevokeArgs::PrintDelegateV1 { .. }
+        RevokeArgs::SaleV1
+        | RevokeArgs::TransferV1
+        | RevokeArgs::UtilityV1
+        | RevokeArgs::StakingV1
+        | RevokeArgs::LockedTransferV1
+        | RevokeArgs::PrintDelegateV1
         | RevokeArgs::MigrationV1 => {
             let (token_record, _) = TokenRecord::find_pda(&mint, &token);
             revoke_accounts.token_record = Some(token_record);
         }
-        RevokeArgs::AuthorityItemV1 { .. } => {
+        RevokeArgs::AuthorityItemV1 => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
                 MetadataDelegateRoleSeed::from(MetadataDelegateRole::AuthorityItem),
@@ -161,7 +161,7 @@ where
             );
             revoke_accounts.delegate_record = Some(delegate_record);
         }
-        RevokeArgs::DataV1 { .. } => {
+        RevokeArgs::DataV1 => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
                 MetadataDelegateRoleSeed::from(MetadataDelegateRole::Data),
@@ -170,7 +170,7 @@ where
             );
             revoke_accounts.delegate_record = Some(delegate_record);
         }
-        RevokeArgs::DataItemV1 { .. } => {
+        RevokeArgs::DataItemV1 => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
                 MetadataDelegateRoleSeed::from(MetadataDelegateRole::DataItem),
@@ -179,7 +179,7 @@ where
             );
             revoke_accounts.delegate_record = Some(delegate_record);
         }
-        RevokeArgs::CollectionV1 { .. } => {
+        RevokeArgs::CollectionV1 => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
                 MetadataDelegateRoleSeed::from(MetadataDelegateRole::Collection),
@@ -188,7 +188,7 @@ where
             );
             revoke_accounts.delegate_record = Some(delegate_record);
         }
-        RevokeArgs::CollectionItemV1 { .. } => {
+        RevokeArgs::CollectionItemV1 => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
                 MetadataDelegateRoleSeed::from(MetadataDelegateRole::CollectionItem),
@@ -197,7 +197,7 @@ where
             );
             revoke_accounts.delegate_record = Some(delegate_record);
         }
-        RevokeArgs::ProgrammableConfigV1 { .. } => {
+        RevokeArgs::ProgrammableConfigV1 => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
                 MetadataDelegateRoleSeed::from(MetadataDelegateRole::ProgrammableConfig),
@@ -206,7 +206,7 @@ where
             );
             revoke_accounts.delegate_record = Some(delegate_record);
         }
-        RevokeArgs::ProgrammableConfigItemV1 { .. } => {
+        RevokeArgs::ProgrammableConfigItemV1 => {
             let (delegate_record, _) = MetadataDelegateRecord::find_pda(
                 &mint,
                 MetadataDelegateRoleSeed::from(MetadataDelegateRole::ProgrammableConfigItem),
@@ -215,7 +215,7 @@ where
             );
             revoke_accounts.delegate_record = Some(delegate_record);
         }
-        RevokeArgs::StandardV1 { .. } => { /* nothing to add */ }
+        RevokeArgs::StandardV1 => { /* nothing to add */ }
     }
 
     // Fungibles without a token standard will fail when an edition is passed in, but

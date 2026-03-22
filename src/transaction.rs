@@ -42,6 +42,7 @@ pub fn send_and_confirm_tx_with_retries(
     let tx = transaction!(signers, ixs, client);
 
     // Send tx with retries.
+    #[allow(clippy::result_large_err)]
     let res = retry(
         Exponential::from_millis_with_factor(250, 2.0).take(3),
         || client.send_and_confirm_transaction_with_spinner(&tx),

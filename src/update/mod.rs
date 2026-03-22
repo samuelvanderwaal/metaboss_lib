@@ -148,7 +148,7 @@ where
     let signers = vec![payer, authority];
 
     let update_ix = update_asset_v1_ix(client, args)?;
-    let units = get_compute_units(client, &[update_ix.clone()], &signers)?
+    let units = get_compute_units(client, std::slice::from_ref(&update_ix), &signers)?
         .unwrap_or(UPDATE_COMPUTE_UNITS as u64);
 
     let instructions = vec![
