@@ -7,7 +7,7 @@ pub enum DecodeError {
     MissingAccount(String),
 
     #[error("failed to get account data")]
-    ClientError(ClientErrorKind),
+    ClientError(Box<ClientErrorKind>),
 
     #[error("failed to parse string into Pubkey")]
     PubkeyParseFailed(String),

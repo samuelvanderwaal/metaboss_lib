@@ -20,14 +20,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install Latest Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          override: true
+      - name: Install Rust 1.93
+        uses: dtolnay/rust-toolchain@1.93
 
       - name: Build
         id: build

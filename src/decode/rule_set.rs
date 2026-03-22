@@ -16,7 +16,7 @@ pub fn decode_rule_set(
 ) -> Result<RuleSetV1, DecodeError> {
     let account_data = client
         .get_account_data(rule_set_pubkey)
-        .map_err(|e| DecodeError::ClientError(e.kind))?;
+        .map_err(|e| DecodeError::ClientError(Box::new(e.kind)))?;
 
     let (revision_map, rev_map_location) =
         get_existing_revision_map(client, rule_set_pubkey).unwrap();
