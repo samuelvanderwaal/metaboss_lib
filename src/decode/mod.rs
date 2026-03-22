@@ -12,9 +12,7 @@ use std::str::FromStr;
 
 pub mod errors;
 use crate::{derive::*, nft::get_nft_token_account};
-mod rule_set;
 use errors::DecodeError;
-pub use rule_set::*;
 
 pub trait ToPubkey {
     fn to_pubkey(self) -> Result<Pubkey, DecodeError>;

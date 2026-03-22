@@ -67,7 +67,7 @@ pub fn get_compute_units(
         ixs,
         Some(&signers[0].pubkey()),
         signers,
-        Hash::new(Pubkey::default().as_ref()), // dummy value
+        Hash::new_from_array(Pubkey::default().to_bytes()), // dummy value
     );
 
     // This doesn't return an error if the simulation fails
