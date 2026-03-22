@@ -27,7 +27,10 @@ jobs:
 
       - name: Install Strawberry Perl (Windows)
         if: runner.os == 'Windows'
-        run: choco install strawberryperl -y
+        run: |
+          choco install strawberryperl -y
+          echo "C:\Strawberry\perl\bin" >> $GITHUB_PATH
+        shell: bash
 
       - name: Build
         id: build
