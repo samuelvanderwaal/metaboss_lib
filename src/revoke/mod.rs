@@ -10,7 +10,7 @@ use solana_client::rpc_client::RpcClient;
 use solana_program::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
-    system_program, sysvar,
+    sysvar,
 };
 use solana_sdk::{
     signature::{Keypair, Signature},
@@ -266,7 +266,7 @@ fn revoke_ix(accounts: RevokeAccounts, args: RevokeArgs) -> Instruction {
             },
             AccountMeta::new_readonly(accounts.authority, true),
             AccountMeta::new(accounts.payer, true),
-            AccountMeta::new_readonly(system_program::ID, false),
+            AccountMeta::new_readonly(crate::constants::SYSTEM_PROGRAM_ID, false),
             AccountMeta::new_readonly(sysvar::instructions::ID, false),
             AccountMeta::new_readonly(accounts.spl_token_program.unwrap_or(ID), false),
             AccountMeta::new_readonly(accounts.authorization_rules_program.unwrap_or(ID), false),

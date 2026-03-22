@@ -215,7 +215,10 @@ where
         rule_set: Some(rule_set),
     }) = md.programmable_config
     {
-        (Some(rule_set), Some(mpl_token_auth_rules::ID))
+        (
+            Some(rule_set),
+            Some(crate::constants::AUTH_RULES_PROGRAM_ID),
+        )
     } else {
         (None, None)
     };
@@ -228,7 +231,7 @@ where
         delegate_record,
         token,
         edition: asset.edition,
-        system_program: solana_program::system_program::ID,
+        system_program: crate::constants::SYSTEM_PROGRAM_ID,
         sysvar_instructions: solana_program::sysvar::instructions::ID,
         authorization_rules,
         authorization_rules_program,

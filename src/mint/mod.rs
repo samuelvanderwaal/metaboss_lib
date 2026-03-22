@@ -1,3 +1,4 @@
+use crate::constants::SYSTEM_PROGRAM_ID;
 use anyhow::{bail, Result};
 use mpl_token_metadata::{
     instructions::{
@@ -11,7 +12,6 @@ use mpl_token_metadata::{
 };
 use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
-use solana_program::system_program;
 use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     pubkey::Pubkey,
@@ -139,7 +139,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         .primary_sale_happened(asset_data.primary_sale_happened)
         .is_mutable(asset_data.is_mutable)
         .token_standard(token_standard)
-        .system_program(system_program::ID)
+        .system_program(SYSTEM_PROGRAM_ID)
         .spl_token_program(Some(spl_token::ID));
 
     if let Some(creators) = asset_data.creators {
@@ -182,7 +182,7 @@ fn mint_asset_v1<P: ToPubkey>(client: &RpcClient, args: MintAssetArgs<P>) -> Res
         .mint(asset.mint)
         .authority(authority.pubkey())
         .payer(payer.pubkey())
-        .system_program(system_program::ID);
+        .system_program(SYSTEM_PROGRAM_ID);
 
     if matches!(
         token_standard,
@@ -317,7 +317,7 @@ pub fn mint(
         .update_authority(funder.pubkey(), true)
         .data(data)
         .is_mutable(!immutable)
-        .system_program(system_program::ID)
+        .system_program(SYSTEM_PROGRAM_ID)
         .instruction();
 
     let create_master_edition_account_ix = CreateMasterEditionV3Builder::new()
@@ -328,7 +328,7 @@ pub fn mint(
         .payer(funder.pubkey())
         .metadata(metadata_account)
         .token_program(spl_token::ID)
-        .system_program(system_program::ID)
+        .system_program(SYSTEM_PROGRAM_ID)
         .max_supply(0)
         .instruction();
 

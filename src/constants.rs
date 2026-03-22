@@ -21,6 +21,7 @@ pub const OFFSET_TO_CREATORS: usize = 326;
 pub const PUBKEY_LENGTH: usize = 32;
 pub const SPL_TOKEN_PROGRAM_ID: Pubkey = pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 pub const AUTH_RULES_PROGRAM_ID: Pubkey = pubkey!("auth9SigNpDKz4sJJ1DfCTuZrZNSAgh9sFD3rboVmgg");
+pub const SYSTEM_PROGRAM_ID: Pubkey = pubkey!("11111111111111111111111111111111");
 pub const MINT_LAYOUT_SIZE: u64 = 82;
 pub const EDITION_V1_BS58: &str = "2";
 
